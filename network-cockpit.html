@@ -1,0 +1,3162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>网络与网络安全态势驾驶舱 · Network Security Cockpit</title>
+<style>
+/* ============================================================
+   设计基准 1920 x 1080，外层等比缩放适配任意分辨率
+   ============================================================ */
+:root{
+  --bg-0:#030711;
+  --panel:rgba(11,26,48,.72);
+  --panel-2:rgba(9,21,40,.94);
+  --line:rgba(64,158,255,.16);
+  --line-2:rgba(64,158,255,.32);
+  --txt:#e8f2ff;
+  --txt-2:#9db6d6;
+  --txt-3:#5d7a9c;
+  --cyan:#22d3ee;
+  --blue:#3b82f6;
+  --green:#22c55e;
+  --amber:#f59e0b;
+  --red:#f43f5e;
+  --purple:#a855f7;
+  --glow:0 0 24px rgba(34,211,238,.28);
+
+  /* ---- 自适应密度层：由 JS 按实际分辨率写入 ---- */
+  --u:1;            /* 密度系数：字号/间距的整体倍率 */
+  --cl:392px;       /* 左栏宽 */
+  --cr:404px;       /* 右栏宽 */
+  --cgap:14px;      /* 栏间距 */
+  --cpad:14px;      /* 栏左右内边距 */
+  --kpi-h:92px;     /* KPI 条高度 */
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#030711}
+body{
+  font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei","Source Han Sans SC",system-ui,sans-serif;
+  color:var(--txt);
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
+}
+.num{font-family:"DIN Alternate","Bahnschrift","Oswald",system-ui,sans-serif;letter-spacing:.5px}
+
+/* 舞台 */
+#stage{
+  position:absolute;left:50%;top:50%;
+  width:1920px;height:1080px;
+  transform-origin:center center;
+  /* 必须是 flex 列：否则 #body 的 flex:1 空转，内容会顶破舞台把告警流挤出屏幕 */
+  display:flex;flex-direction:column;overflow:hidden;
+  background:
+    radial-gradient(1400px 700px at 50% -8%, rgba(23,95,170,.28), transparent 62%),
+    radial-gradient(1000px 600px at 8% 100%, rgba(168,85,247,.12), transparent 60%),
+    radial-gradient(900px 600px at 96% 88%, rgba(34,211,238,.10), transparent 60%),
+    linear-gradient(180deg,#050d1e 0%,#030711 55%,#040a16 100%);
+}
+/* 网格底纹 */
+#stage::before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.35;
+  background-image:
+    linear-gradient(rgba(64,158,255,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(64,158,255,.045) 1px,transparent 1px);
+  background-size:60px 60px;
+  -webkit-mask-image:radial-gradient(1200px 800px at 50% 40%,#000 30%,transparent 100%);
+          mask-image:radial-gradient(1200px 800px at 50% 40%,#000 30%,transparent 100%);
+}
+
+/* ---------------- 顶部 ---------------- */
+#top{height:104px;display:flex;flex-direction:column;padding:0 26px}
+.brand{display:flex;align-items:center;gap:16px;padding-top:12px}
+.brand .logo{
+  width:40px;height:40px;border-radius:10px;flex:0 0 40px;
+  background:linear-gradient(140deg,#0891b2,#1d4ed8);
+  box-shadow:var(--glow);position:relative;
+}
+.brand .logo::after{
+  content:"";position:absolute;inset:9px;border:2px solid rgba(255,255,255,.85);
+  border-radius:3px;border-right-color:transparent;border-bottom-color:transparent;
+  transform:rotate(-45deg);
+}
+.brand h1{
+  font-size:30px;font-weight:800;letter-spacing:5px;
+  background:linear-gradient(180deg,#fff,#7dd3fc 120%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.brand .sub{font-size:12px;color:var(--txt-2);letter-spacing:3px;margin-top:2px}
+.brand .meta{margin-left:auto;display:flex;align-items:center;gap:14px}
+.src-chip{
+  font-size:12px;color:var(--txt-2);border:1px solid var(--line);
+  padding:6px 12px;border-radius:999px;background:rgba(9,21,40,.6);
+  display:flex;align-items:center;gap:8px;
+}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);display:inline-block}
+.dot.warn{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.dot.bad{background:var(--red);box-shadow:0 0 8px var(--red)}
+.btn{
+  font-size:13px;color:var(--txt);cursor:pointer;border:1px solid var(--line-2);
+  background:rgba(14,34,62,.8);padding:7px 15px;border-radius:8px;
+  transition:.18s;letter-spacing:1px;user-select:none;
+}
+.btn:hover{background:rgba(34,211,238,.16);border-color:var(--cyan);color:#fff}
+.btn.on{background:rgba(34,211,238,.2);border-color:var(--cyan);color:#fff;box-shadow:var(--glow)}
+
+.confbox{
+  margin-top:8px;padding:10px 12px;border-radius:6px;
+  background:rgba(3,12,26,.9);border:1px solid var(--line-2);
+  font-family:ui-monospace,Consolas,"Courier New",monospace;
+  font-size:11px;line-height:1.55;color:#9fd7f0;
+  white-space:pre-wrap;word-break:break-all;
+  max-height:340px;overflow:auto;
+}
+.confbox::-webkit-scrollbar{width:6px;height:6px}
+.confbox::-webkit-scrollbar-thumb{background:rgba(34,211,238,.3);border-radius:3px}
+
+.kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:10px;flex:0 0 auto;min-height:0}
+.kpi{
+  background:linear-gradient(180deg,rgba(16,38,68,.9),rgba(8,19,36,.75));
+  border:1px solid var(--line);border-radius:10px;padding:8px 14px;
+  position:relative;overflow:hidden;
+}
+.kpi::before{content:"";position:absolute;left:0;top:0;width:3px;height:100%;background:var(--c,var(--cyan))}
+.kpi::after{
+  content:"";position:absolute;right:-30px;top:-30px;width:70px;height:70px;border-radius:50%;
+  background:var(--c,var(--cyan));opacity:.10;
+}
+.kpi .k{font-size:12px;color:var(--txt-2);letter-spacing:1px}
+.kpi .v{font-size:27px;font-weight:700;line-height:1.15;color:var(--c,var(--cyan));text-shadow:0 0 16px currentColor}
+.kpi .v small{font-size:13px;color:var(--txt-2);margin-left:3px;text-shadow:none;font-weight:400}
+.kpi .d{font-size:11px;color:var(--txt-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------------- 主体 ---------------- */
+#body{flex:1;display:grid;grid-template-columns:var(--cl) 1fr var(--cr);
+      gap:var(--cgap);padding:0 var(--cpad);min-height:0}
+.col{display:flex;flex-direction:column;gap:var(--cgap);min-height:0}
+
+/* ---------------- 分屏预览（多页）模式 ---------------- */
+#pagebar{display:none;align-items:center;gap:10px;padding:6px 14px 2px}
+body[data-view="paged"] #pagebar{display:flex}
+.ptab{cursor:pointer;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;
+  color:var(--txt-2);background:rgba(255,255,255,.04);border:1px solid var(--line);transition:.15s;user-select:none}
+.ptab:hover{color:var(--txt);border-color:var(--line-2)}
+.ptab.on{color:#06121f;background:var(--cyan);border-color:var(--cyan);box-shadow:var(--glow)}
+.pbar-hint{font-size:11px;color:var(--txt-3);margin-left:auto}
+/* 分屏：列包裹层打平，面板直接参与网格重排 */
+body[data-view="paged"] #body{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));
+  grid-auto-rows:minmax(230px,1fr);align-content:stretch;overflow:auto;padding:8px var(--cpad)}
+body[data-view="paged"] #colL,
+body[data-view="paged"] #mid,
+body[data-view="paged"] #colR{display:contents}
+body[data-view="paged"][data-page="sec"] .panel:not([data-page~="sec"]),
+body[data-view="paged"][data-page="net"] .panel:not([data-page~="net"]),
+body[data-view="paged"][data-page="cap"] .panel:not([data-page~="cap"]){display:none !important}
+
+/* 面板 */
+.panel{
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  backdrop-filter:blur(2px);position:relative;display:flex;flex-direction:column;min-height:0;
+  transition:box-shadow .2s,border-color .2s;
+}
+.panel:hover{border-color:var(--line-2)}
+.panel::before,.panel::after{
+  content:"";position:absolute;width:14px;height:14px;border:2px solid var(--cyan);opacity:.75;pointer-events:none
+}
+.panel::before{left:-1px;top:-1px;border-right:0;border-bottom:0;border-radius:12px 0 0 0}
+.panel::after{right:-1px;bottom:-1px;border-left:0;border-top:0;border-radius:0 0 12px 0}
+.p-h{
+  height:40px;display:flex;align-items:center;gap:10px;padding:0 14px;flex:0 0 40px;
+  border-bottom:1px solid rgba(64,158,255,.10);
+}
+.p-h .bar{width:3px;height:14px;background:var(--cyan);border-radius:2px;box-shadow:0 0 8px var(--cyan)}
+.p-h .t{font-size:15px;font-weight:600;letter-spacing:1.5px}
+.p-h .en{font-size:10px;color:var(--txt-3);letter-spacing:1.4px;text-transform:uppercase}
+.p-h .r{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txt-3)}
+.p-b{flex:1;min-height:0;padding:10px 12px 12px;overflow:hidden}
+.p-b.pb0{padding:0}
+.p-h .chipbtn{
+  font-size:10px;letter-spacing:.5px;color:var(--txt-3);cursor:pointer;
+  border:1px solid var(--line-2);border-radius:4px;padding:2px 6px;background:rgba(34,211,238,.08);
+}
+.p-h .chipbtn:hover{color:#a5f3fc;border-color:var(--cyan)}
+
+/* 可拖动自定义 */
+.panel .grip{width:14px;height:14px;opacity:.5;cursor:grab;
+  background:radial-gradient(circle at 3px 3px,currentColor 1.4px,transparent 1.5px) 0 0/6px 6px;color:var(--cyan)}
+.panel[draggable="true"]{cursor:grab}
+body.editing #stage .panel{cursor:move}
+body.editing #stage .p-b{pointer-events:none}
+.panel.dragover{border-color:var(--cyan);box-shadow:var(--glow);transform:translateY(-2px)}
+.panel.drag-h{opacity:.45}
+.sw{width:22px;height:22px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:.15s}
+.sw:hover{transform:scale(1.12)}
+.sw.on{border-color:#fff;box-shadow:0 0 0 2px var(--cyan)}
+
+/* 中部 */
+#mid{display:flex;flex-direction:column;gap:14px;min-height:0}
+.big-nums{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.bn{
+  border:1px solid var(--line);border-radius:10px;padding:8px 12px;
+  background:linear-gradient(180deg,rgba(14,33,60,.7),rgba(7,17,32,.5));position:relative;overflow:hidden
+}
+.bn .n{font-size:34px;font-weight:800;line-height:1;color:var(--c);text-shadow:0 0 18px currentColor}
+.bn .n small{font-size:14px;text-shadow:none;font-weight:400}
+.bn .l{font-size:11px;color:var(--txt-2);margin-top:3px;letter-spacing:1px}
+.bn .s{position:absolute;right:8px;bottom:6px;font-size:10px;color:var(--txt-3)}
+
+/* 横向条形 */
+.rows{display:flex;flex-direction:column;gap:9px}
+.row{display:grid;grid-template-columns:96px 1fr 62px;align-items:center;gap:9px;font-size:12px}
+.row .nm{color:var(--txt-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .tr{height:9px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden;display:block;position:relative}
+.row .fl{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--c1),var(--c2));
+  box-shadow:0 0 10px var(--c1);transition:width .6s cubic-bezier(.22,1,.36,1);width:0}
+.row .vl{text-align:right;color:var(--txt);font-weight:600;white-space:nowrap}
+.row .vl i{font-style:normal;font-size:10px;color:var(--txt-3);margin-left:2px;font-weight:400}
+
+/* 列表 */
+.list{display:flex;flex-direction:column;gap:7px;overflow:hidden}
+.li{
+  display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;
+  background:rgba(255,255,255,.028);border:1px solid rgba(255,255,255,.05);
+  border-radius:7px;padding:7px 10px;font-size:12px;
+}
+.li:hover{background:rgba(34,211,238,.07);border-color:var(--line-2)}
+.li .tag{width:5px;height:22px;border-radius:3px;background:var(--c);display:block}
+.li .tt{color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .ss{color:var(--txt-3);font-size:10px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .vv{font-weight:700;color:var(--c);font-size:13px;white-space:nowrap}
+
+/* 告警流 */
+#alertbar{
+  flex:0 0 auto;height:118px;margin:0 14px 12px;border:1px solid var(--line);border-radius:12px;
+  background:linear-gradient(90deg,rgba(30,8,16,.7),rgba(8,19,36,.7) 42%,rgba(8,19,36,.7) 58%,rgba(8,20,38,.7));
+  display:flex;align-items:center;overflow:hidden;
+}
+#alertbar .lab{
+  flex:0 0 128px;height:100%;display:flex;flex-direction:column;justify-content:center;
+  align-items:center;gap:4px;border-right:1px solid var(--line);color:var(--red);
+  background:linear-gradient(180deg,rgba(244,63,94,.16),transparent);
+}
+#alertbar .lab b{font-size:24px;font-weight:800}
+#alertbar .lab span{font-size:11px;color:var(--txt-2);letter-spacing:2px}
+#stream{flex:1;overflow:hidden;padding:8px 16px;
+  -webkit-mask-image:linear-gradient(90deg,#000 94%,transparent);
+          mask-image:linear-gradient(90deg,#000 94%,transparent)}
+.sline{
+  display:grid;grid-template-columns:74px 74px 1fr 96px;gap:14px;align-items:center;
+  padding:5px 0;font-size:12.5px;border-bottom:1px dashed rgba(255,255,255,.05);
+}
+.sline .tm{color:var(--txt-3)}
+.sline .lv{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:4px;text-align:center;letter-spacing:1px}
+.sline .lv.crit{background:rgba(244,63,94,.18);color:#fda4af;border:1px solid rgba(244,63,94,.4)}
+.sline .lv.high{background:rgba(245,158,11,.16);color:#fcd34d;border:1px solid rgba(245,158,11,.36)}
+.sline .lv.warn{background:rgba(59,130,246,.16);color:#93c5fd;border:1px solid rgba(59,130,246,.36)}
+.sline .lv.info{background:rgba(148,163,184,.14);color:#cbd5e1;border:1px solid rgba(148,163,184,.3)}
+.sline .msg{color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sline .msg b{color:var(--cyan);font-weight:600}
+.sline .ip{color:var(--txt-3);text-align:right;font-size:11px}
+
+/* SVG 通用 */
+svg{display:block;overflow:visible}
+.tk2{font-size:10px;fill:#5d7a9c}
+.flow{stroke-dasharray:5 7;animation:dash 1.1s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-12}}
+body.paused .flow{animation-play-state:paused}
+
+/* ============================================================
+   地图模块
+   ============================================================ */
+#mapPanel{position:relative;overflow:hidden;background:#04101f}
+/* 内置引擎（无底图示意图）画布 */
+#mapBuiltin{position:absolute;inset:0}
+#mapSvg{width:100%;height:100%;background:
+  radial-gradient(1200px 420px at 50% 46%, rgba(23,95,170,.16), transparent 70%),
+  linear-gradient(180deg,#04101f,#030a16)}
+.map-tool{
+  position:absolute;left:10px;top:10px;z-index:6;display:flex;gap:6px;flex-wrap:wrap;
+  max-width:calc(100% - 20px);
+}
+.map-tool .chip{
+  font-size:10.5px;letter-spacing:.5px;color:var(--txt-2);cursor:pointer;
+  border:1px solid var(--line-2);border-radius:999px;padding:3px 9px;
+  background:rgba(4,16,31,.82);backdrop-filter:blur(4px);transition:.15s;
+}
+.map-tool .chip:hover{color:var(--txt);border-color:var(--cyan)}
+.map-tool .chip.on{background:rgba(34,211,238,.2);border-color:var(--cyan);color:#a5f3fc}
+.map-tool .chip.static{cursor:default}
+.map-tool .chip.static:hover{color:var(--txt-2);border-color:var(--line-2)}
+.map-brand{
+  position:absolute;right:10px;bottom:8px;z-index:6;font-size:10px;color:#3f5f80;
+  letter-spacing:.5px;text-align:right;line-height:1.5;
+}
+/* 点位信息卡 */
+#mapPop{
+  position:absolute;z-index:9;display:none;width:242px;
+  background:rgba(6,18,36,.96);border:1px solid var(--line-2);border-radius:10px;
+  padding:10px 11px;box-shadow:0 14px 40px rgba(0,0,0,.65);backdrop-filter:blur(6px);
+}
+#mapPop.show{display:block}
+#mapPop h4{font-size:12.5px;color:var(--txt);display:flex;align-items:center;gap:6px;margin-bottom:2px}
+#mapPop h4 i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);font-style:normal}
+#mapPop .en{font-size:9.5px;color:var(--txt-3);letter-spacing:1px;margin-bottom:7px}
+#mapPop .kv{display:flex;justify-content:space-between;font-size:11px;color:var(--txt-2);padding:2.5px 0}
+#mapPop .kv b{color:var(--txt);font-weight:700}
+#mapPop .as{display:flex;gap:5px;margin:8px 0 6px}
+#mapPop .as div{flex:1;background:rgba(34,211,238,.08);border:1px solid var(--line);border-radius:6px;padding:5px 0;text-align:center}
+#mapPop .as div span{display:block;font-size:9.5px;color:var(--txt-3)}
+#mapPop .as div b{font-size:14px;color:var(--cyan);font-weight:800}
+#mapPop .foot{font-size:10px;color:var(--txt-3);border-top:1px solid var(--line);padding-top:6px;margin-top:4px}
+/* 降级提示条（顶部横幅，可关闭，不遮挡下方示意图） */
+#mapNotice{
+  position:absolute;left:10px;right:10px;top:38px;z-index:8;display:none;
+  background:rgba(28,17,4,.92);border:1px solid rgba(245,158,11,.45);border-radius:6px;
+  padding:5px 30px 5px 12px;box-shadow:0 8px 26px rgba(0,0,0,.5);
+}
+#mapNotice.show{display:block}
+#mapNotice .x{
+  position:absolute;right:8px;top:6px;width:18px;height:18px;line-height:16px;text-align:center;
+  color:var(--txt-3);border:1px solid var(--line-2);border-radius:4px;cursor:pointer;font-size:11px;
+}
+#mapNotice .x:hover{color:var(--txt);border-color:var(--amber)}
+#mapNotice .in h4{display:none}
+#mapNotice .in p{font-size:10.5px;color:var(--txt-2);line-height:1.6}
+#mapNotice .in code{color:var(--cyan);background:rgba(34,211,238,.1);padding:1px 5px;border-radius:3px;font-size:10.5px}
+
+/* 资产条 */
+.assetbar{
+  position:absolute;left:10px;right:10px;bottom:9px;z-index:6;
+  display:flex;gap:8px;align-items:stretch;
+}
+.assetbar .a{
+  flex:1;background:rgba(4,16,31,.86);border:1px solid var(--line);border-radius:7px;
+  padding:5px 8px;text-align:center;
+}
+.assetbar .a b{display:block;font-size:16px;font-weight:800;line-height:1.2}
+.assetbar .a span{font-size:9.5px;color:var(--txt-3);letter-spacing:.5px}
+.assetbar .a i{font-style:normal;font-size:9.5px;color:var(--txt-3);margin-left:3px}
+
+/* ============================================================
+   抽屉：页签
+   ============================================================ */
+.tabs{display:flex;gap:6px;margin-bottom:10px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.tabs .t{
+  flex:1;text-align:center;font-size:11.5px;padding:5px 0;cursor:pointer;color:var(--txt-3);
+  border:1px solid transparent;border-radius:6px;transition:.15s;letter-spacing:.5px;
+}
+.tabs .t:hover{color:var(--txt-2)}
+.tabs .t.on{color:var(--cyan);border-color:var(--line-2);background:rgba(34,211,238,.1)}
+.tp{display:none}
+.tp.on{display:block}
+.fld{margin-bottom:9px}
+.fld label{display:block;font-size:10.5px;color:var(--txt-3);margin-bottom:3px;letter-spacing:.5px}
+.fld input,.fld textarea{
+  width:100%;background:rgba(3,12,26,.9);border:1px solid var(--line-2);border-radius:6px;
+  color:var(--txt);font-size:11px;padding:6px 8px;font-family:ui-monospace,Consolas,monospace;
+  outline:none;resize:vertical;
+}
+.fld input:focus,.fld textarea:focus{border-color:var(--cyan)}
+.fld .hint{font-size:9.5px;color:#4a688c;line-height:1.6;margin-top:3px}
+.fld textarea{height:190px;line-height:1.5}
+.fld .row2{display:flex;gap:6px}
+.fld .row2 .btn{flex:1;text-align:center;font-size:11px;padding:5px 0}
+
+/* 指标映射行 */
+.ch{border:1px solid var(--line);border-radius:6px;padding:5px 6px;margin-bottom:5px;background:rgba(3,12,26,.45)}
+.ch .h{display:flex;gap:4px;align-items:center;margin-bottom:4px}
+.ch .h input,.ch .h select{
+  background:rgba(3,12,26,.9);border:1px solid var(--line-2);border-radius:5px;color:var(--txt);
+  font-size:10.5px;padding:4px 5px;font-family:ui-monospace,Consolas,monospace;outline:none;
+}
+.ch .h input{flex:1;min-width:0}
+.ch .h select{flex:0 0 52px;text-align:center}
+.ch input{width:100%;background:rgba(3,12,26,.9);border:1px solid var(--line-2);border-radius:5px;
+  color:var(--txt);font-size:10.5px;padding:4px 6px;font-family:ui-monospace,Consolas,monospace;outline:none}
+.ch .rm{flex:0 0 20px;text-align:center;cursor:pointer;color:#5a7a99;font-size:11px;border-radius:4px}
+.ch .rm:hover{color:var(--red);background:rgba(244,63,94,.12)}
+.ch .tag{font-size:9px;color:var(--txt-3);letter-spacing:.5px}
+
+/* 模块管理抽屉 */
+#drawer{
+  position:absolute;right:20px;top:126px;width:290px;z-index:50;
+  background:var(--panel-2);border:1px solid var(--line-2);border-radius:12px;padding:14px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);display:none;
+}
+#drawer.show{display:block}
+#drawer h3{font-size:14px;letter-spacing:1px;margin-bottom:10px;color:var(--cyan)}
+#drawer .m{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 0;cursor:pointer;color:var(--txt-3)}
+#drawer .m span.box{width:15px;height:15px;border:1px solid var(--line-2);border-radius:4px;flex:0 0 15px;
+  text-align:center;line-height:13px;color:var(--cyan)}
+#drawer .m.on{color:var(--txt)}
+#drawer .m.on span.box{background:rgba(34,211,238,.22);border-color:var(--cyan)}
+#drawer .ops{display:flex;gap:8px;margin-top:12px}
+#drawer .ops .btn{flex:1;text-align:center;font-size:12px;padding:6px 0}
+
+/* 告警分级图例 */
+#sevLegend{display:flex;gap:8px;padding:2px 16px 6px}
+.sev-chip{
+  font-size:10.5px;color:var(--txt-2);border:1px solid var(--line);
+  border-radius:999px;padding:2px 9px;display:flex;align-items:center;gap:5px;
+  background:rgba(8,20,38,.7);letter-spacing:.5px;
+}
+.sev-chip i{width:6px;height:6px;border-radius:50%;background:var(--c);box-shadow:0 0 6px var(--c)}
+.sev-chip b{color:var(--c);font-size:11.5px;font-weight:800}
+
+/* 分级口径表 */
+.sm-t{font-size:11.5px;color:var(--cyan);letter-spacing:.5px;margin:14px 0 6px;
+  border-top:1px solid var(--line);padding-top:12px}
+table.sm{width:100%;border-collapse:collapse;font-size:10.5px}
+table.sm td{padding:5px 4px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top;line-height:1.5}
+table.sm td:first-child{white-space:nowrap;font-weight:700}
+
+.edit-tip{
+  position:absolute;left:50%;transform:translateX(-50%);bottom:12px;z-index:60;
+  background:rgba(6,18,36,.94);border:1px solid var(--cyan);border-radius:999px;
+  padding:8px 20px;font-size:12.5px;color:var(--txt-2);display:none;letter-spacing:1px;
+  box-shadow:0 0 30px rgba(34,211,238,.22);white-space:nowrap;
+}
+body.editing .edit-tip{display:block}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <!-- ===================== 顶部 ===================== -->
+  <div id="top">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <h1>网络与网络安全态势驾驶舱</h1>
+        <div class="sub">GLOBAL NETWORK &amp; SECURITY OPERATION COCKPIT · HQ DATA CENTER</div>
+      </div>
+      <div class="meta">
+        <div class="src-chip"><i class="dot" id="srcDot"></i>Zabbix v7.0 · <span id="srcHost">10.252.28.99</span> · 同步 <span id="lastSync">--:--:--</span></div>
+        <div class="btn" id="btnPause">⏸ 暂停轮询</div>
+        <div class="btn" id="btnFit" title="点击切换适配模式：自适应 → 等比缩放 → 铺满">⛶ 适配</div>
+        <div class="btn" id="btnView" title="切换 单页集成 / 分屏预览（多页）">▦ 单页</div>
+        <div class="btn" id="btnCustom">⚙ 自定义</div>
+        <div class="btn" id="btnFull">⛶ 全屏</div>
+      </div>
+    </div>
+    <div class="kpis" id="kpis" data-mod="kpis" data-name="顶部指标条"></div>
+  </div>
+
+  <!-- 分屏预览页签：仅分屏模式可见 -->
+  <div id="pagebar">
+    <div class="ptab on" data-page="net">网络全景</div>
+    <div class="ptab" data-page="sec">安全态势</div>
+    <div class="ptab" data-page="cap">业务容量</div>
+    <div class="pbar-hint">分屏预览 · 拖拽排序与模块显隐请在「单页」下调整</div>
+  </div>
+
+  <!-- ===================== 主体 ===================== -->
+  <div id="body">
+    <!-- 左：安全态势 -->
+    <div class="col" id="colL">
+      <div class="panel" data-mod="secScore" data-page="sec" style="flex:1.05">
+        <div class="p-h"><i class="bar"></i><span class="t">安全态势综合评分</span><span class="en">Security Score</span>
+          <div class="r"><i class="grip"></i></div></div>
+        <div class="p-b"><div id="secScore"></div></div>
+      </div>
+
+      <div class="panel" data-mod="secTrend" data-page="sec" style="flex:1">
+        <div class="p-h"><i class="bar"></i><span class="t">攻击与拦截趋势</span><span class="en">Threat · 24H</span>
+          <div class="r"><span>拦截率 <b style="color:var(--green)" id="blkRate">--</b></span></div></div>
+        <div class="p-b"><div id="secTrend"></div></div>
+      </div>
+
+      <div class="panel" data-mod="secTop" data-page="sec" style="flex:0 0 auto">
+        <div class="p-h"><i class="bar"></i><span class="t">攻击源类型 TOP</span><span class="en">Attack Types</span>
+          <div class="r"><i class="grip"></i></div></div>
+        <div class="p-b"><div class="rows" id="secTop"></div></div>
+      </div>
+
+      <div class="panel" data-mod="secRisk" data-page="sec" style="flex:1">
+        <div class="p-h"><i class="bar"></i><span class="t">高风险对象</span><span class="en">High Risk Assets</span>
+          <div class="r"><i class="grip"></i></div></div>
+        <div class="p-b"><div class="list" id="secRisk"></div></div>
+      </div>
+    </div>
+
+    <!-- 中：网络全景 -->
+    <div id="mid">
+      <div class="panel" data-mod="band" data-page="net" style="flex:0 0 148px">
+        <div class="p-h"><i class="bar"></i><span class="t">骨干网实时吞吐</span><span class="en">Core Throughput</span>
+          <div class="r"><span id="capTxt">容量占用 --%</span><i class="grip"></i></div></div>
+        <div class="p-b"><div class="big-nums" id="band"></div></div>
+      </div>
+
+      <div class="panel" data-mod="topo" data-page="net" style="flex:1 1 0;min-height:0">
+        <div class="p-h"><i class="bar"></i><span class="t">网络架构全景</span><span class="en">Core / Agg / Access</span>
+          <div class="r"><span>链路健康 <b id="linkHealth" style="color:var(--green)">--</b></span>
+            <span class="num" id="topoDev">-- 台设备</span><i class="grip"></i></div></div>
+        <div class="p-b"><div id="topo" style="height:100%"></div></div>
+      </div>
+
+      <!-- 地理分布：默认腾讯地图零Key模式，可切换引擎与自定义点位 -->
+      <div class="panel" data-mod="map" data-page="net" style="flex:0 0 252px">
+        <div class="p-h"><i class="bar"></i><span class="t">园区 · 机房地理分布</span><span class="en">Geographic View</span>
+          <div class="r"><span class="num" id="mapSiteCnt">--</span>
+            <span class="chipbtn" id="mapEng">引擎</span><i class="grip"></i></div></div>
+        <div class="p-b pb0" id="mapPanel">
+          <div id="mapBuiltin"><svg id="mapSvg" viewBox="0 0 660 218" preserveAspectRatio="none"></svg></div>
+          <div id="mapLegend" class="map-tool"></div>
+          <div id="mapPop"></div>
+          <div class="assetbar" id="assetBar"></div>
+          <div id="mapNotice">
+            <div class="in">
+              <h4>⚠ 地图引擎未就绪</h4>
+              <p id="mapNoticeTxt"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" data-mod="link" data-page="net" style="flex:0 0 176px">
+        <div class="p-h"><i class="bar"></i><span class="t">端口流量 / 丢包排行</span><span class="en">Interfaces TOP</span>
+          <div class="r"><i class="grip"></i></div></div>
+        <div class="p-b">
+          <div class="rows" id="linkRows" style="margin-bottom:10px"></div>
+          <svg id="spark" viewBox="0 0 640 78" style="width:100%;height:78px"></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右：业务与容量 -->
+    <div class="col" id="colR">
+      <div class="panel" data-mod="sla" data-page="cap" style="flex:1">
+        <div class="p-h"><i class="bar"></i><span class="t">业务系统可用率</span><span class="en">Service SLA</span>
+          <div class="r"><i class="grip"></i></div></div>
+        <div class="p-b"><div class="list" id="sla"></div></div>
+      </div>
+
+      <div class="panel" data-mod="cap" data-page="cap" style="flex:0 0 292px">
+        <div class="p-h"><i class="bar"></i><span class="t">资源容量水位</span><span class="en">Capacity</span>
+          <div class="r"><i class="grip"></i></div></div>
+        <div class="p-b"><div id="cap"></div></div>
+      </div>
+
+      <div class="panel" data-mod="ticket" data-page="cap" style="flex:1">
+        <div class="p-h"><i class="bar"></i><span class="t">工单与变更</span><span class="en">Tickets &amp; Changes</span>
+          <div class="r"><i class="grip"></i></div></div>
+        <div class="p-b"><div class="list" id="ticket"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 底部告警流 ===================== -->
+  <div id="alertbar" data-mod="alertbar" data-name="底部告警流">
+    <div class="lab"><b class="num" id="critCnt">0</b><span>实时告警流</span></div>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div id="stream"></div>
+      <div id="sevLegend"></div>
+    </div>
+  </div>
+
+  <div id="drawer">
+    <div class="tabs">
+      <div class="t on" data-tp="mod">模块管理</div>
+      <div class="t" data-tp="geo">地图与数据</div>
+      <div class="t" data-tp="zbx">数据接入</div>
+    </div>
+
+    <div class="tp on" id="tpMod">
+      <div id="modList"></div>
+
+      <div class="fld">
+        <label>屏幕适配</label>
+        <div class="row2">
+          <div class="btn" id="fitReflow">自适应重排</div>
+          <div class="btn" id="fitContain">等比缩放</div>
+        </div>
+        <div class="row2" style="margin-top:6px">
+          <div class="btn" id="fitFill">铺满留边</div>
+          <div class="btn" id="fitAuto">按屏自动</div>
+        </div>
+        <div class="hint" id="fitInfo">—</div>
+      </div>
+
+      <div class="fld">
+        <label>主题色（主强调色）</label>
+        <div class="row2" id="themeColors">
+          <span class="sw" data-c="#22d3ee" style="background:#22d3ee" title="青"></span>
+          <span class="sw" data-c="#3b82f6" style="background:#3b82f6" title="蓝"></span>
+          <span class="sw" data-c="#22c55e" style="background:#22c55e" title="绿"></span>
+          <span class="sw" data-c="#a855f7" style="background:#a855f7" title="紫"></span>
+          <span class="sw" data-c="#f59e0b" style="background:#f59e0b" title="橙"></span>
+          <span class="sw" data-c="#f43f5e" style="background:#f43f5e" title="红"></span>
+        </div>
+        <div class="hint">切换后图表与高亮同步换色，刷新后保留。</div>
+      </div>
+
+      <div class="fld">
+        <label>信息密度（手动覆盖自动缩放）</label>
+        <input id="themeU" type="range" min="0.7" max="2" step="0.05" value="0" />
+        <div class="hint" id="themeUInfo">0 = 自动（按分辨率）</div>
+      </div>
+
+      <div id="sevMap"></div>
+    </div>
+
+    <div class="tp" id="tpZbx">
+      <div class="fld">
+        <label>数据模式</label>
+        <div class="row2">
+          <div class="btn" id="zbxLive">实时 · Zabbix</div>
+          <div class="btn" id="zbxDemo">演示 · 基线</div>
+        </div>
+        <div class="hint" id="zbxMode"></div>
+      </div>
+
+      <div class="fld">
+        <label>API 地址</label>
+        <input id="zbxEp" spellcheck="false" placeholder="http://10.252.28.99/api_jsonrpc.php" />
+      </div>
+
+      <div class="fld">
+        <label>认证方式</label>
+        <div class="row2">
+          <div class="btn" id="zbxAuthToken">API Token</div>
+          <div class="btn" id="zbxAuthPwd">账号 + 密码</div>
+          <div class="btn" id="zbxAuthSid">手填 Session ID</div>
+        </div>
+      </div>
+
+      <div class="fld" id="zbxFldToken">
+        <label>Token</label>
+        <input id="zbxToken" type="password" spellcheck="false" placeholder="zabbix_api_token_…" autocomplete="off" />
+        <div class="hint">前端明文保存于本地 localStorage。生产环境建议由反向代理注入 Authorization，不要把 Token 写进页面文件。</div>
+      </div>
+
+      <div class="fld" id="zbxFldPwd" hidden>
+        <label>账号 / 密码</label>
+        <div class="row2">
+          <input id="zbxUser" spellcheck="false" placeholder="Zabbix 用户名" autocomplete="off" />
+          <input id="zbxPass" type="password" placeholder="密码" autocomplete="off" />
+        </div>
+        <div class="hint">Zabbix 没有"密码直传"的接口，标准做法是登录时调 <code>user.login</code> 换 sessionid，之后所有调用只带 sessionid。密码只在登录那一刻使用，不参与后续请求。</div>
+      </div>
+
+      <div class="fld" id="zbxFldSid" hidden>
+        <label>Session ID</label>
+        <input id="zbxSid" type="password" spellcheck="false" placeholder="粘贴 zbx_sessionid…" autocomplete="off" />
+        <div class="hint">你的 Zabbix 若已移除 <code>user.login</code>，可在浏览器登录 Web 控制台后按 F12 → Console 执行 <code>document.cookie</code>，把 <code>zbx_sessionid</code> 的值粘到这里。</div>
+      </div>
+
+      <div class="fld">
+        <label>连通性</label>
+        <div class="row2">
+          <div class="btn" id="zbxTest">测试连接</div>
+          <div class="btn" id="zbxSave">保存并生效</div>
+          <div class="btn" id="zbxLogout">退出登录</div>
+        </div>
+        <div class="hint" id="zbxMsg">—</div>
+      </div>
+
+      <div class="fld">
+        <label>攻击与拦截 · FortiAnalyzer</label>
+        <div class="row2">
+          <div class="btn" id="fazOn">启用 FortiAnalyzer</div>
+          <div class="btn" id="fazOff">停用</div>
+        </div>
+        <div class="row2" style="margin-top:6px">
+          <div class="btn" id="fazAuthRpc">JSON-RPC · 账号密码</div>
+          <div class="btn" id="fazAuthRest">REST · Token</div>
+        </div>
+        <div class="fld" style="margin-top:6px">
+          <label>接口地址</label>
+          <input id="fazEp" spellcheck="false" placeholder="https://10.252.28.99/jsonrpc.php" />
+        </div>
+        <div class="fld" id="fazFldRpc">
+          <label>账号 / 密码</label>
+          <div class="row2">
+            <input id="fazUser" spellcheck="false" placeholder="账号" autocomplete="off" />
+            <input id="fazPass" type="password" placeholder="密码" autocomplete="off" />
+          </div>
+          <div class="fld" style="margin-top:6px">
+            <label>查询方法名</label>
+            <input id="fazMethod" spellcheck="false" placeholder="log fetch" />
+          </div>
+        </div>
+        <div class="fld" id="fazFldRest" hidden>
+          <label>Access Token</label>
+          <input id="fazToken" type="password" spellcheck="false" placeholder="粘贴 FAZ 的 API Token" autocomplete="off" />
+        </div>
+        <div class="row2" style="margin-top:6px">
+          <label style="font-size:11px;color:var(--txt-2)">时间窗(分钟)</label>
+          <input id="fazWin" type="number" min="5" max="1440" value="60" style="max-width:80px" />
+          <label style="font-size:11px;color:var(--txt-2)">最大条数</label>
+          <input id="fazLimit" type="number" min="100" max="20000" step="100" value="2000" style="max-width:90px" />
+        </div>
+        <div class="fld" style="margin-top:6px">
+          <label>附加过滤条件（可选）</label>
+          <input id="fazExtra" spellcheck="false" placeholder='如 type=attack 或 subtype="IDS"' />
+        </div>
+        <div class="row2" style="margin-top:6px">
+          <div class="btn" id="fazFields">字段映射</div>
+          <div class="btn" id="fazTest">测试查询</div>
+          <div class="btn" id="fazSave">保存</div>
+        </div>
+        <div class="fld" id="fazFldMap" hidden style="margin-top:6px">
+          <label>字段名（取不到就按别名兜底）</label>
+          <div class="row2">
+            <input id="fazFTime" spellcheck="false" placeholder="时间 @timestamp" />
+            <input id="fazFSrc"  spellcheck="false" placeholder="源IP srcip" />
+          </div>
+          <div class="row2" style="margin-top:6px">
+            <input id="fazFAttack" spellcheck="false" placeholder="攻击 attack" />
+            <input id="fazFAction" spellcheck="false" placeholder="动作 action" />
+          </div>
+          <div class="row2" style="margin-top:6px">
+            <input id="fazFSvc" spellcheck="false" placeholder="服务 service" />
+            <input id="fazFVdom" spellcheck="false" placeholder="VDOM/区 vdom" />
+          </div>
+        </div>
+        <div class="hint" id="fazMsg">尚未接入。取到日志后会自动覆盖「攻击趋势 / 攻击类型 TOP / 高风险清单 / 安全事件 KPI」。</div>
+      </div>
+
+      <div class="fld">
+        <label>指标映射 · 容量水位逐行接管</label>
+        <div id="chList"></div>
+        <div class="row2" style="margin-top:6px">
+          <div class="btn" id="chAdd">+ 新增一行</div>
+          <div class="btn" id="chSave">保存并生效</div>
+        </div>
+        <div class="row2" style="margin-top:6px">
+          <div class="btn" id="chDefault">恢复默认</div>
+          <div class="btn" id="chExport">导出 JSON</div>
+        </div>
+        <div class="hint" id="chMsg">—</div>
+        <div class="hint">
+          <code>key</code> 填 Zabbix item key（如 <code>system.cpu.util</code>）：接口模糊匹配后<b>优先取精确同名项，没有才退化子串匹配</b>，再在本地聚合；
+          <code>agg</code> = sum 求和 / avg 均值 / max 最大 / min 最小 / last 最新；
+          <code>scale</code> 为换算系数（bps→Gbps 填 <code>0.000000001</code>）。
+          <b>留空的行继续显示演示基线</b>，不强行造数；映射存本地，刷新不丢。
+          <span style="color:#f59e0b">多行 key 重叠时会互相污染</span>（如 <code>system.cpu.util</code> 会把交换机和服务器的都算进来），
+          请填到能区分的粒度。
+        </div>
+      </div>
+
+      <div class="fld">
+        <label>已真实接入的字段</label>
+        <div class="hint" style="border:1px solid rgba(56,189,248,.18);border-radius:6px;padding:8px">
+          纳管设备分类与在线状态 <code>hostgroup.get / host.get</code><br>
+          告警分级与告警流 <code>trigger.get</code>（priority → P1~P4）<br>
+          骨干吞吐 / 平均时延 <code>item.get</code> <code>net.if.*</code> / <code>agent.ping</code><br>
+          容量水位 <code>item.get</code>（按上方映射逐行接管）<br>
+          <b>拓扑节点</b>：Zabbix 主机名与拓扑节点标签同名即接管，异常取「不可达主机 + P1/P2 触发」<br>
+          <b>地图点位</b>：点位 id / 名称命中主机分组名则接管三态与在线率<br>
+          <span style="color:#f59e0b">安全评分、攻击趋势、工单仍为演示基线</span>——这些语义依赖你们自己的 trigger 标签口径，需要单独定义。
+        </div>
+      </div>
+
+      <div class="fld">
+        <label>反向代理配置（CORS 被拦 / 不想存 Token 时用）</label>
+        <div class="row2">
+          <div class="btn" id="zbxConf">显示配置</div>
+          <div class="btn" id="zbxConfCopy">复制配置</div>
+        </div>
+        <div class="hint">
+          浏览器的跨域限制只会拦「浏览器直连」。把上方 API 地址改成走你们自己的反代域名
+          （如 <code>https://zbx.your.com/zabbix-api/</code>），即可绕开跨域，还能让服务端注入 Token，页面里不再存明文。
+        </div>
+        <pre id="zbxConfBox" class="confbox" hidden></pre>
+      </div>
+    </div>
+
+    <div class="tp" id="tpGeo">
+      <div class="fld">
+        <label>离线底图（可选 · 完全不出网）</label>
+        <div class="row2">
+          <div class="btn" id="geoBasePick">选择底图图片</div>
+          <div class="btn" id="geoBaseClear">清除底图</div>
+        </div>
+        <input type="file" id="geoBaseFile" accept="image/*" style="display:none" />
+        <div class="fld" style="margin-top:6px">
+          <label>底图对应的经纬范围</label>
+          <div class="row2">
+            <input id="geoLatN" placeholder="北端纬度 31.30" />
+            <input id="geoLatS" placeholder="南端纬度 31.10" />
+          </div>
+          <div class="row2" style="margin-top:6px">
+            <input id="geoLngW" placeholder="西端经度 121.30" />
+            <input id="geoLngE" placeholder="东端经度 121.70" />
+          </div>
+        </div>
+        <div class="row2" style="margin-top:6px">
+          <div class="btn" id="geoBaseApply">应用底图</div>
+          <div class="btn" id="geoBaseTest">校验点位是否落在底图内</div>
+        </div>
+        <div class="hint" id="geoBaseMsg">当前为纯示意图，不加载任何在线地图。底图需你自己提供一份已合规审查的图源（例如自然资源标准底图或单位内部地图），本页不内置、不下载任何地图瓦片。</div>
+      </div>
+
+      <div class="fld">
+        <label>点位数据（JSON 数组 · 支持 CSV 粘贴）</label>
+        <textarea id="geoJson" spellcheck="false"></textarea>
+        <div class="hint">
+          单条字段：<code>id,name,lat,lng,type,status,net,srv,sto,owner</code><br>
+          type = idc 数据中心 / campus 办公园区 / branch 分支 / dr 灾备；
+          status = 1 正常 · 2 降级 · 0 异常
+        </div>
+      </div>
+
+      <div class="fld">
+        <label>批量导入</label>
+        <div class="row2">
+          <div class="btn" id="geoImport">导入 JSON / CSV</div>
+          <div class="btn" id="geoExport">导出模板</div>
+        </div>
+        <div class="row2" style="margin-top:6px">
+          <div class="btn" id="geoApply">应用点位</div>
+          <div class="btn" id="geoDefault">恢复内置点位</div>
+        </div>
+        <input type="file" id="geoFile" accept=".json,.csv,.txt" style="display:none" />
+        <div class="hint" id="geoMsg">尚未导入自定义点位，当前使用内置点位。</div>
+      </div>
+    </div>
+
+    <div class="ops">
+      <div class="btn" id="btnReset">恢复默认</div>
+      <div class="btn" id="btnDone">完成</div>
+    </div>
+  </div>
+
+  <div class="edit-tip">编辑模式：拖动面板右上角手柄可跨行换序，点击「模块管理」可隐藏模块</div>
+</div>
+
+<script>
+/* ==========================================================================
+ *  0. 自适应：三种适配模式 + 自适应档位
+ *     contain  等比缩放（保底，任意分辨率不变形，边缘留底）
+ *     fill     铺满（取大者，消除黑边，超宽屏可能切掉顶部/底部）
+ *     reflow   响应式重排（stage 按实际视口重算逻辑画布 + zoom 密度，
+ *               UltraWide 下中间栏自动铺开、4K 下字号自动提升，不留边）
+ *     auto     自动（首屏按屏幕挑一个，之后沿用保存值）
+ *  说明：SVG 全部走 viewBox，容器尺寸变化时天然跟随，无需重绘。
+ * ======================================================================== */
+const STAGE_W = 1920, STAGE_H = 1080;
+const stage = document.getElementById('stage');
+const canZoom = ('zoom' in document.body.style);
+
+const FIT = {
+  mode : localStorage.getItem('netcockpit.fit') || 'auto',
+  list : canZoom ? ['reflow','contain','fill','auto'] : ['contain','fill','auto'],
+  u    : 1
+};
+
+/* 外观主题：主色与手动密度（覆盖自动缩放） */
+const THEME = JSON.parse(localStorage.getItem('netcockpit.theme') || '{}');
+function saveTheme(){ try{ localStorage.setItem('netcockpit.theme', JSON.stringify(THEME)); }catch(e){} }
+function applyTheme(){
+  if (THEME.accent){ C.cyan = THEME.accent; document.documentElement.style.setProperty('--cyan', THEME.accent); }
+}
+
+/* 依据视口算出 reflow 的密度系数与逻辑画布尺寸 */
+function reflowCalc(w, h){
+  const uH = h / STAGE_H;                                  // 由高度定基准密度
+  const uW = w / 1200;                                     // 保证逻辑宽不小于 1200，放得下三栏
+  const u  = Math.max(0.6, Math.min(uH, uW, 2.6));
+  return { u:u, lw:Math.round(w/u), lh:Math.round(h/u) };
+}
+
+function fit(){
+  const w = window.innerWidth, h = window.innerHeight;
+  let mode = FIT.mode;
+  if (mode === 'auto'){
+    /* 自动档：超宽屏 / 高分辨率 走重排，小屏保守等比 */
+    const ar = w / h;
+    mode = (canZoom && (ar > 1.70 || w >= 2560)) ? 'reflow' : 'contain';
+  }
+
+  if (mode === 'reflow' && canZoom){
+    const c = reflowCalc(w, h);
+    FIT.u = c.u;
+    if (THEME.manualU > 0) FIT.u = THEME.manualU;
+    stage.style.zoom = c.u;
+    stage.style.width  = c.lw + 'px';
+    stage.style.height = c.lh + 'px';
+    stage.style.transform = 'none';
+    stage.style.left = '0'; stage.style.top = '0';
+    applyDensity(THEME.manualU > 0 ? THEME.manualU : c.u, w, h, c.lw);
+    return;
+  }
+
+  /* contain / fill：固定设计稿 + transform 缩放 */
+  const s = (mode === 'fill')
+    ? Math.max(w/STAGE_W, h/STAGE_H)
+    : Math.min(w/STAGE_W, h/STAGE_H);
+  FIT.u = s;
+  if (THEME.manualU > 0) FIT.u = THEME.manualU;
+  stage.style.zoom = 1;
+  stage.style.width  = STAGE_W + 'px';
+  stage.style.height = STAGE_H + 'px';
+  stage.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+  stage.style.left = '50%'; stage.style.top = '50%';
+  applyDensity(THEME.manualU > 0 ? THEME.manualU : s, w, h, STAGE_W);
+}
+
+/* 把密度写成 CSS 变量，让栏宽跟着变 */
+function applyDensity(u, w, h, lw){
+  const r = document.documentElement.style;
+  /* 逻辑画布越宽，说明屏幕越"横向富余"，此时按比例压窄侧栏把空间让给中间栏。
+     注意不能拿屏幕宽高比硬压：4K 只是 1080p 的放大版，比例不该变。 */
+  const avail = lw - 56;                              // 扣掉两侧 padding 28 + 两处 gap 28
+  const k = Math.max(0.72, Math.min(1, avail / 1920)); // 只缩不放，避免小屏挤爆
+  /* 注意：contain/fill 由 transform 统一缩放，reflow 由 zoom 统一放大，
+     间距一律写设计值，不要再乘 u，否则会被放大两次 */
+  r.setProperty('--u',    u.toFixed(3));
+  r.setProperty('--cl',   Math.round(392*k) + 'px');
+  r.setProperty('--cr',   Math.round(404*k) + 'px');
+  r.setProperty('--cgap', '14px');
+  r.setProperty('--cpad', '14px');
+}
+
+function fitModeSet(m){
+  FIT.mode = m;
+  localStorage.setItem('netcockpit.fit', m);
+  fit(); fitSync();
+}
+function setAccent(hex){
+  THEME.accent = hex; saveTheme();
+  C.cyan = hex; document.documentElement.style.setProperty('--cyan', hex);
+  if (typeof tick === 'function') tick(true);
+}
+function setDensity(u){
+  THEME.manualU = u; saveTheme();
+  fit(); fitSync();
+}
+function bindTheme(){
+  document.querySelectorAll('#themeColors .sw').forEach(function(sw){
+    sw.onclick = function(){
+      document.querySelectorAll('#themeColors .sw').forEach(function(x){ x.classList.remove('on'); });
+      sw.classList.add('on'); setAccent(sw.dataset.c);
+    };
+  });
+  const u = $('themeU');
+  if (u){
+    u.value = THEME.manualU || 0;
+    u.oninput = function(){
+      const v = parseFloat(this.value) || 0;
+      setDensity(v);
+      $('themeUInfo').textContent = v > 0 ? ('×' + v.toFixed(2) + '（手动）') : '0 = 自动（按分辨率）';
+    };
+  }
+  if (THEME.accent){
+    const cur = document.querySelector('#themeColors .sw[data-c="' + THEME.accent + '"]');
+    if (cur) cur.classList.add('on');
+  }
+}
+function fitSync(){
+  const el = document.getElementById('btnFit');
+  if (!el) return;
+  const label = { reflow:'⛶ 自适应', contain:'⊞ 等比', fill:'▣ 铺满', auto:'⛶ 自动' };
+  el.textContent = label[FIT.mode] || '⛶ 适配';
+  el.classList.toggle('on', FIT.mode !== 'contain');
+  el.title = '适配模式：' + ({reflow:'自适应重排',contain:'等比缩放',fill:'铺满留边',auto:'按屏幕自动'})[FIT.mode]
+           + ' · 当前 ' + window.innerWidth + '×' + window.innerHeight + ' · 密度 ×' + FIT.u.toFixed(2);
+  /* 抽屉里的四个按钮同步高亮 + 实时信息 */
+  const mark = { fitReflow:'reflow', fitContain:'contain', fitFill:'fill', fitAuto:'auto' };
+  Object.keys(mark).forEach(function(id){
+    const b = document.getElementById(id);
+    if (b) b.classList.toggle('on', FIT.mode === mark[id]);
+  });
+  const info = document.getElementById('fitInfo');
+  if (info){
+    const w = window.innerWidth, h = window.innerHeight, ar = (w/h).toFixed(2);
+    info.innerHTML = '当前 <b>' + w + '×' + h + '</b>（' + ar + ':1）· ' +
+      ({reflow:'自适应重排（铺满，密度 ×'+FIT.u.toFixed(2)+'）',
+        contain:'等比缩放 ×'+FIT.u.toFixed(2)+'（留边）',
+        fill:'铺满 ×'+FIT.u.toFixed(2)+'（可能切边）',
+        auto:'按屏幕自动'})[FIT.mode] + '<br>' +
+      '<span style="color:#5a7a99">换屏或改分辨率会自动重算；选过的模式会记住。超宽屏会自动压窄侧栏、加宽中间的拓扑与地图。</span>';
+  }
+}
+
+/* 顶栏按钮：在可用档位里循环 */
+document.getElementById('btnFit').onclick = function(){
+  const i = FIT.list.indexOf(FIT.mode);
+  fitModeSet(FIT.list[(i + 1) % FIT.list.length]);
+};
+/* 抽屉里的四个直接切换 */
+[['fitReflow','reflow'],['fitContain','contain'],['fitFill','fill'],['fitAuto','auto']]
+  .forEach(function(p){
+    const b = document.getElementById(p[0]);
+    if (b) b.onclick = function(){ fitModeSet(p[1]); };
+  });
+
+let fitTimer = null;
+window.addEventListener('resize', function(){
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(function(){ fit(); fitSync(); }, 120);
+});
+window.addEventListener('orientationchange', fit);
+fit(); fitSync();
+
+document.getElementById('btnFull').onclick = () => {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+  else document.exitFullscreen && document.exitFullscreen();
+};
+
+/* ==========================================================================
+ *  1. 数据层 —— ZabbixAdapter
+ *     双模：演示（Mock 基线）/ 实时（Zabbix JSON-RPC）。
+ *     实时模式下只覆盖「能真实取到」的字段，取不到的自动沿用演示基线，
+ *     因此任何一次接口失败都不会白屏，最差退回演示模式并标记数据源异常。
+ *     Zabbix 7.0 已用 API：
+ *       hostgroup.get / host.get / trigger.get / item.get
+ *     可选扩展：event.get（问题事件原文）、discovery.get（自动发现）
+ * ======================================================================== */
+/* 指标通道默认值：slot 决定接管哪块面板，下标决定接管该面板的第几行。
+   key 留空 = 不接管该行，继续用演示基线。用户可通过抽屉「指标映射」改。 */
+const CHANNEL_DEFAULT = [
+  { slot:'cap', idx:0, label:'核心交换机 CPU',   key:'system.cpu.util[sw', agg:'avg', unit:'%',    scale:1 },
+  { slot:'cap', idx:1, label:'核心交换机内存',   key:'vm.memory.utilization',                      agg:'avg', unit:'%',  scale:1 },
+  { slot:'cap', idx:2, label:'PowerEdge 池 CPU', key:'system.cpu.util[cpu', agg:'avg', unit:'%',    scale:1 },
+  { slot:'cap', idx:3, label:'存储池容量',       key:'vfs.fs.size[',        agg:'max', unit:'%',    scale:1 },
+  { slot:'cap', idx:4, label:'机房温度',         key:'temperature',         agg:'max', unit:'°C',   scale:1 },
+  { slot:'cap', idx:5, label:'出口下行吞吐',     key:'net.if.out',          agg:'sum', unit:'Gbps', scale:0.000000001 },
+  { slot:'cap', idx:6, label:'IP 地址池',        key:'',                    agg:'avg', unit:'%',    scale:1 }
+];
+
+const ZabbixAdapter = {
+  key      : 'netcockpit.zbx.ch',   // 映射配置存储键
+  endpoint: localStorage.getItem('netcockpit.zbx.ep')    || 'http://10.252.28.99/api_jsonrpc.php',
+  token   : localStorage.getItem('netcockpit.zbx.token') || '',
+  /* 账号密码登录模式：Zabbix 没有「密码直传」的 API，标准做法是 user.login 换 sessionid，
+     之后所有调用带上 sessionid。sid 与账号一起缓存，失效时自动重登一次。 */
+  authMode: localStorage.getItem('netcockpit.zbx.mode') || 'token',  // token | pwd | sid
+  user    : localStorage.getItem('netcockpit.zbx.user') || '',
+  pass    : localStorage.getItem('netcockpit.zbx.pass') || '',
+  sid     : localStorage.getItem('netcockpit.zbx.sid')  || '',
+  sidAt   : +(localStorage.getItem('netcockpit.zbx.sidat') || 0),
+  timeout : 8000,
+  live    : localStorage.getItem('netcockpit.zbx.live') === '1',
+  lastSync: 0,
+  error   : '',
+  _seq    : 1,
+
+  /* --- 当前调用凭证：sid 优先于 token --- */
+  cred(){ return (this.authMode === 'pwd' && this.sid) ? this.sid : this.token; },
+  /* session 按 Zabbix 默认会话上限 15 分钟保守取 13 分钟，过期静默重登 */
+  sidFresh(){ return this.authMode !== 'pwd' ? true : (Date.now() - this.sidAt < 13*60*1000); },
+
+  /* --- 账号密码登录：user.login 换 sessionid（兼容返回字符串与新版本返回对象两种形态）--- */
+  async login(){
+    if (!this.endpoint) throw new Error('未配置接入地址');
+    if (!this.user || !this.pass) throw new Error('未填写 Zabbix 账号密码');
+    const j = await this.rpc({ jsonrpc:'2.0', method:'user.login',
+                               params:{ user: this.user, password: this.pass }, id: this._seq++ });
+    const res = j.result;
+    const sid = (res && typeof res === 'object') ? (res.sessionid || res.sessionId) : res;
+    if (!sid || typeof sid !== 'string') throw new Error('登录成功但未返回 sessionid（该版本接口已变更）');
+    this.sid = sid; this.sidAt = Date.now();
+    try{
+      localStorage.setItem('netcockpit.zbx.sid', sid);
+      localStorage.setItem('netcockpit.zbx.sidat', String(this.sidAt));
+    }catch(e){}
+    return sid;
+  },
+  logout(){
+    if (this.cred()){
+      try{ this.rpc({ jsonrpc:'2.0', method:'user.logout', params:{}, id: this._seq++ }); }catch(e){}
+    }
+    this.sid = ''; this.sidAt = 0;
+    try{ localStorage.removeItem('netcockpit.zbx.sid'); localStorage.removeItem('netcockpit.zbx.sidat'); }catch(e){}
+  },
+  /* 裸 RPC：不带 auth 字段，供 login/logout 自身使用 */
+  async rpc(body, ms){
+    if (!this.endpoint) throw new Error('未配置接入地址');
+    const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const tm  = setTimeout(function(){ ctl && ctl.abort(); }, ms || this.timeout);
+    try{
+      const r = await fetch(this.endpoint, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json-rpc' },
+        body   : JSON.stringify(body),
+        signal : ctl ? ctl.signal : undefined
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + r.statusText);
+      const j = await r.json();
+      if (j.error) throw new Error('[' + (j.error.code || '?') + '] ' + (j.error.message || 'API 报错'));
+      return j;
+    } finally { clearTimeout(tm); }
+  },
+  /* 取凭证：密码模式先确保 session 有效，失效只重登一次，不再重试（避免密码错误时反复打服务端） */
+  async ensureCred(){
+    if (this.authMode !== 'pwd') return this.cred();
+    if (!this.sidFresh() || !this.sid) await this.login();
+    return this.sid;
+  },
+
+  /* --- JSON-RPC 调用：单条，带超时 --- */
+  async call(method, params, ms){
+    if (!this.endpoint) throw new Error('未配置接入地址');
+    if (!this.cred()) throw new Error('未配置接入凭证（Token 或账号密码）');
+    const cred = await this.ensureCred();
+    if (!cred) throw new Error('账号密码登录失败，未拿到 sessionid');
+    const id = this._seq++;
+    const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const tm  = setTimeout(function(){ ctl && ctl.abort(); }, ms || this.timeout);
+    try{
+      const r = await fetch(this.endpoint, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json-rpc' },
+        body   : JSON.stringify({ jsonrpc:'2.0', method:method,
+                                  params: params || {}, id: id, auth: cred }),
+        signal : ctl ? ctl.signal : undefined
+      });
+      const j = await r.json();
+      if (j.error) throw new Error('[' + (j.error.code || '?') + '] ' + (j.error.message || 'API 报错'));
+      return j.result;
+    } finally { clearTimeout(tm); }
+  },
+  /* 容错取值：单项失败只记录原因，不影响其余项 */
+  async opt(promise){
+    try { return await promise; }
+    catch(e){ (this.errors = this.errors || []).push(e.message || String(e)); return null; }
+  },
+
+  /* --- 指标通道配置：用户可在抽屉「指标映射」里改，默认见 CHANNEL_DEFAULT --- */
+  channels(){
+    try{
+      const s = JSON.parse(localStorage.getItem(this.key) || 'null');
+      if (Array.isArray(s) && s.length) return s;
+    }catch(e){}
+    return CHANNEL_DEFAULT.map(function(x){ return Object.assign({}, x); });
+  },
+  saveChannels(a){ try{ localStorage.setItem(this.key, JSON.stringify(a)); }catch(e){} },
+
+  /* --- 主入口：返回与 Mock.build() 同构的快照 --- */
+  async fetch(){
+    const d  = Mock.build();          // 结构基线
+    let snap = null;
+
+    if (this.live){
+      snap = await this.pull(d);
+      if (snap){
+        this.lastSync = Date.now();
+        /* 有真实数据就算成功；若同时有分项失败，如实标注降级原因 */
+        this.error = (this.errors && this.errors.length)
+          ? (this.errors.length + ' 项接口失败 · ' + this.errors[0]) : '';
+      } else {
+        this.error = (this.errors && this.errors.length) ? this.errors[0] : '实时接口未取到数据';
+      }
+    } else {
+      this.error = '';
+    }
+    if (snap) Object.assign(d, snap);  // 真实值覆盖，未覆盖字段沿用基线
+    this.lastSync = this.lastSync || Date.now();
+    return d;
+  },
+
+  /* --- 真实数据拉取；任一分项失败只降级该项。d = 演示基线快照 --- */
+  async pull(d){
+    this.errors = [];
+    const [hosts, av, trg, ifs, met] = await Promise.all([
+      this.pullHosts(), this.pullAvail(), this.pullTriggers(), this.pullItems(), this.pullMetrics()
+    ]);
+    const snap = {};
+    /* 五项全失败 → 视为整体失败，整份回退演示基线，避免半真半假的数据混进大屏 */
+    if (!hosts && !av && !trg && !ifs && !met) return null;
+    /* 分段落覆盖时，后一段必须基于「已生成的快照」而不是演示基线，否则会抹掉前一段的真实值 */
+    let cur = d.kpi;
+
+    /* 1) 纳管设备分类 + 在线状态 */
+    if (hosts || av){
+      const net = hosts ? hosts.net : null, srv = hosts ? hosts.srv : null, sto = hosts ? hosts.sto : null;
+      const on  = av ? av.online : null;
+      const off = av ? av : null;
+      const total = (net != null || srv != null || sto != null)
+        ? (net||0) + (srv||0) + (sto||0) : null;
+      if (total != null){
+        const k = cur.slice();
+        k[0] = { k:k[0].k, v: total.toLocaleString(), u:k[0].u, c:k[0].c, d:'网络 '+(net||0)+' · 服 '+(srv||0)+' · 存 '+(sto||0) };
+        /* 离线数优先取 host.available 统计值，避免用「总数-在线」反推造成口径漂移 */
+        if (off != null) k[0].d += ' · 在线 '+off.online+' · 离线 '+off.offline;
+        else if (on != null) k[0].d += ' · 在线 '+on;
+        snap.kpi = k; cur = k;
+      }
+    }
+
+    /* 2) 告警分级统计 + 告警流 */
+    if (trg && trg.list && trg.list.length){
+      const order = { P1:0, P2:1, P3:2, P4:3 };
+      const list = trg.list.slice().sort(function(a,b){
+        return (order[a.sev] - order[b.sev]) || (b.clock - a.clock);
+      });
+      const mix = { P1:0, P2:0, P3:0, P4:0 };
+      trg.list.forEach(function(t){ mix[t.sev] = (mix[t.sev]||0) + 1; });
+      snap.mix = mix;
+
+      const win = [];
+      ['P1','P2','P3','P4'].forEach(function(s){
+        win.push.apply(win, list.filter(function(t){ return t.sev===s; }).slice(0,3).map(function(t){
+          return { lv:s, msg:t.msg, ip:t.host, g:t.group, tm:fmtTime(t.clock*1000) };
+        }));
+      });
+      if (win.length) snap.alerts = win;
+
+      const k = cur.slice();
+      k[2] = { k:k[2].k, v:trg.total, u:k[2].u,
+               c:trg.list.some(function(t){ return t.sev==='P1'; }) ? C.red : C.amber,
+               d:'P1 '+(mix.P1||0)+' · P2 '+(mix.P2||0)+' · P3 '+(mix.P3||0)+' · P4 '+(mix.P4||0) };
+      snap.kpi = k; cur = k;
+    }
+
+    /* 3) 骨干吞吐 / 平均时延 */
+    if (ifs){
+      const k = cur.slice();
+      if (ifs.gbps != null) k[4] = { k:k[4].k, v:ifs.gbps.toFixed(2), u:k[4].u, c:k[4].c, d:(ifs.hosts||0)+' 个接口采样求和' };
+      if (ifs.rtt  != null) k[6] = { k:k[6].k, v:ifs.rtt.toFixed(1), u:k[6].u, c:k[6].c, d:'agent.ping 均值' };
+      snap.kpi = k; cur = k;
+    }
+
+    /* 4) 容量水位：映射命中的行逐个接管，未命中的行保持演示基线 */
+    if (met && met.cap){
+      const m = met.cap;
+      snap.cap = d.cap.map(function(r, i){ return m[i] || r; });
+    }
+
+    /* 5) 拓扑节点状态：Zabbix 主机名与节点标签同名则接管，异常由「不可达主机 + P1/P2 触发」决定。
+           匹配不到就沿用演示基线——不靠猜，避免整层一刀切把好节点也染红。 */
+    if (av && av.names){
+      const RANK = { P1:0, P2:1, P3:2, P4:3 };
+      const bad = {};
+      (av.downNames || []).forEach(function(n){ bad[n] = 0; });
+      if (trg && trg.list) trg.list.forEach(function(t){
+        if (t.sev === 'P3' || t.sev === 'P4') return;
+        const cur = bad[t.host], rc = cur === undefined ? 9 : RANK[cur === 0 ? 'P1' : 'P2'];
+        if (RANK[t.sev] < rc) bad[t.host] = t.sev === 'P1' ? 0 : 2;
+      });
+      let hit = 0, sum = 0;
+      const nodes = d.topo.nodes.map(function(n){
+        if (av.names.indexOf(n.t) < 0) return n;     // 节点标签在 Zabbix 里找不到同名主机
+        hit++;
+        const st = bad[n.t] === undefined ? 1 : bad[n.t];
+        sum += st === 1 ? 100 : st === 2 ? 92 : 55;
+        return n.st === st ? n : Object.assign({}, n, { st: st });
+      });
+      if (hit >= 2) snap.topo = Object.assign({}, d.topo, { nodes: nodes, health: +(sum / hit).toFixed(1) });
+    }
+
+    /* 6) 地图点位健康：点位 id / 名称能匹配上 Zabbix 主机分组时接管三态 */
+    if (av && av.byGroup){
+      const gm = {};
+      Object.keys(av.byGroup).forEach(function(g){
+        gm[g] = +(100 * av.byGroup[g].o / av.byGroup[g].t).toFixed(1);
+      });
+      const live = Object.assign({}, MapLayer.live);
+      const hits = [];
+      MapLayer.points.forEach(function(p){
+        const m = [p.id, p.name].find(function(k){ return k && gm[k] !== undefined; });
+        if (m == null) return;
+        const r = gm[m];
+        live[p.id] = { rate: r, st: r < 80 ? 0 : r < 94 ? 2 : 1 };
+        hits.push(p.id);
+      });
+      if (hits.length){
+        MapLayer.live = live;
+        snap.sites = MapLayer.points.map(function(p){
+          const l = live[p.id];
+          return { id: p.id, name: p.name, health: l ? l.rate : 97 };
+        });
+      }
+    }
+    return snap;
+  },
+
+  /* --- 分组主机计数：网络设备 / 服务器 / 存储（组名需与你的 Zabbix 一致） --- */
+  async pullHosts(){
+    const NAMES = ['Network devices','Servers','Storage Arrays','Synology NAS'];
+    const gs = await this.opt(this.call('hostgroup.get', { output:['groupid','name'], filter:{ name:NAMES } }));
+    if (!gs) return null;
+    const gm = {}; gs.forEach(function(g){ gm[g.name] = g.groupid; });
+    const gid = [['net', gm['Network devices']], ['srv', gm['Servers']], ['sto', gm['Storage Arrays'] || gm['Synology NAS']]];
+    const out = { net:0, srv:0, sto:0 };
+    for (const [key, id] of gid){
+      if (!id) continue;
+      const c = await this.opt(this.call('host.get', { countOutput:true, groupids:[id], filter:{ status:0 } }));
+      if (typeof c === 'number') out[key] = c;
+    }
+    return (out.net || out.srv || out.sto) ? out : null;
+  },
+
+  /* --- 主机全量清单（host.available: 1 可达 · 2 不可达 · 0 未知）
+         一次请求同时得到：在线/离线数 · 各分组在线率 · 拓扑四层在线率。
+         拓扑层级按分组名关键字匹配（firewall→fw、core→core、agg/access→agg、server/prod→term），
+         匹配不到就返回空，由调用方自行沿用演示基线。 --- */
+  async pullAvail(){
+    const base = { output:['hostid','host','available'], filter:{ status:0 } };
+    let hs = await this.opt(this.call('host.get', Object.assign({ selectGroups:['name'] }, base)));
+    if (!hs) hs = await this.opt(this.call('host.get', base));   // 老版本不支持 selectGroups
+    if (!hs || !hs.length) return null;
+    const LAYER = [
+      ['fw',   /(firewall|fw|pan|forti|fortinet)/i],
+      ['core', /(core|nexus|n9k|c9500)/i],
+      ['agg',  /(agg|access|switch|c9[3-5]00|c2960)/i],
+      ['term', /(server|prod|office|vm|host)/i]
+    ];
+    const T = { fw:0, core:0, agg:0, term:0 }, O = { fw:0, core:0, agg:0, term:0 };
+    const byGroup = {}, names = [], downNames = [];
+    let online = 0, offline = 0;
+    hs.forEach(function(h){
+      const ok = (Number(h.available) === 1);      // 不可达(2)与未知(0)都算非正常
+      if (ok) online++; else offline++;
+      if (h.host) names.push(h.host);
+      if (!ok && h.host) downNames.push(h.host);
+      const gs = (h.groups || []).map(function(g){ return (g && g.name) || ''; }).filter(Boolean);
+      gs.forEach(function(g){
+        const m = byGroup[g] || (byGroup[g] = { t:0, o:0 });
+        m.t++; if (ok) m.o++;
+      });
+      let done = false;
+      gs.some(function(g){
+        for (let i = 0; i < LAYER.length; i++){
+          if (LAYER[i][1].test(g) && !done){
+            T[LAYER[i][0]]++; if (ok) O[LAYER[i][0]]++;
+            done = true; return true;
+          }
+        }
+        return false;
+      });
+    });
+    const layers = Object.keys(T).map(function(k){
+      return { k: k, t: T[k], o: O[k], rate: T[k] ? +(100 * O[k] / T[k]).toFixed(1) : null };
+    }).filter(function(x){ return x.t > 0; });
+    return { online: online, offline: offline, byGroup: byGroup,
+             names: names, downNames: downNames, layers: layers };
+  },
+
+  /* --- 容量水位：一次 item.get 取回所有映射 key，按通道各自聚合 --- */
+  async pullMetrics(){
+    const chs = this.channels().filter(function(c){ return (c.key || '').trim(); });
+    if (!chs.length) return null;
+    const res = await this.opt(this.call('item.get', {
+      output: ['lastvalue','key_'],
+      search: { key_: chs.map(function(c){ return c.key.trim(); }) },
+      limit : 2000
+    }));
+    if (!res || !res.length) return null;
+    /* 服务端是模糊匹配，这里再按 key 复核一次，避免无关 item 混进来算错量纲 */
+    const byKey = {};
+    res.forEach(function(i){
+      const k = i.key_ || '';
+      (byKey[k] = byKey[k] || []).push(Number(i.lastvalue));
+    });
+    /* 与 d.cap 同构同序，命中哪行就接管哪行；未命中的行留 undefined 由调用方沿用基线 */
+    const cap = [];
+    chs.forEach(function(c){
+      const frag = (c.key || '').trim().replace(/\*/g, '');
+      const nums = [];
+      const take = function(arr){ nums.push.apply(nums, arr); };
+      /* 精确命中优先：system.cpu.util 只应统计服务器，不应把交换机的 [sw,...] 也算进来；
+         一条精确匹配都没有时，才退化为子串匹配 */
+      let exact = false;
+      Object.keys(byKey).forEach(function(k){ if (k === frag){ take(byKey[k]); exact = true; } });
+      if (!exact) Object.keys(byKey).forEach(function(k){ if (k.indexOf(frag) > -1) take(byKey[k]); });
+      const v = nums.filter(function(x){ return isFinite(x); });
+      if (!v.length) return;
+      let val;
+      switch ((c.agg || 'avg').toLowerCase()){
+        case 'sum':  val = v.reduce(function(a,b){ return a+b; }, 0); break;
+        case 'max':  val = Math.max.apply(null, v); break;
+        case 'min':  val = Math.min.apply(null, v); break;
+        case 'last': val = v[v.length - 1]; break;
+        default:     val = v.reduce(function(a,b){ return a+b; }, 0) / v.length;
+      }
+      val = val * (Number(c.scale) || 1);
+      cap[c.idx === undefined ? cap.length : c.idx] = {
+        n: c.label || '指标', v: +val.toFixed(2), u: c.unit || '',
+        c: val >= 88 ? C.red : val >= 78 ? C.amber : val >= 60 ? C.green : C.cyan
+      };
+    });
+    if (!cap.filter(Boolean).length) return null;
+    return { cap: cap };
+  },
+
+  /* --- 当前 problem trigger → P1~P4 分级 --- */
+  async pullTriggers(){
+    const trg = await this.opt(this.call('trigger.get', {
+      output   : ['triggerid','description','priority','lastchange'],
+      selectHosts: ['host'],
+      filter   : { value: 1 },
+      only_true: true,
+      limit    : 500
+    }));
+    if (!trg || !trg.length) return { list: [], total: 0 };
+    const esc  = s => String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+      return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c];
+    });
+    const list = trg.map(function(t){
+      /* priority 5=Disaster 4=High 3=Average 2=Warning 1=Info 0=Not classified
+         按「业务影响×紧迫度」压缩为 P1~P4（与页面 SEV 口径一致） */
+      const p = Number(t.priority) || 0;
+      const sev = p >= 5 ? 'P1' : p === 4 ? 'P2' : (p === 3 || p === 2) ? 'P3' : 'P4';
+      const host = (t.hosts && t.hosts[0] && t.hosts[0].host) || '—';
+      const txt  = esc(t.description || 'trigger');
+      /* 触发对象加粗，便于值班一眼定位 */
+      const msg  = txt.indexOf(host) === 0 ? '<b>' + esc(host) + '</b>' + esc(txt.slice(host.length)) : '<b>' + esc(host) + '</b> ' + txt;
+      return { sev: sev, msg: msg, host: host, group: sev==='P1'||sev==='P2' ? '网络组' : sev==='P3' ? '网络组 / 应用组' : '平台组',
+               clock: Number(t.lastchange) || Math.floor(Date.now()/1000) };
+    });
+    return { list: list, total: trg.length };
+  },
+
+  /* --- 骨干出口吞吐 / 平均时延 / 接口采样数
+         服务端 search 为模糊匹配，这里再按 key_ 前缀客户端过滤一次，避免算错量纲 --- */
+  async pullItems(){
+    const res = await this.opt(this.call('item.get', {
+      output: ['lastvalue','units','key_'],
+      search: { key_: ['net.if.in','net.if.out'] }
+    }));
+    let bps = 0, n = 0;
+    (res || []).forEach(function(i){
+      if (!/^net\.if\./.test(i.key_ || '')) return;
+      const v = Number(i.lastvalue);
+      if (isFinite(v)){ bps += v; n++; }
+    });
+    const rtt = await this.opt(this.call('item.get', { output:['lastvalue','key_'], search:{ key_:'agent.ping' } }));
+    let sum = 0, rn = 0;
+    (rtt || []).forEach(function(i){
+      if (!/^agent\.ping/.test(i.key_ || '')) return;
+      const v = Number(i.lastvalue);
+      if (isFinite(v)){ sum += v; rn++; }
+    });
+    if (!n && !rn) return null;
+    return { gbps: n ? bps / 1e9 : null, rtt: rn ? sum / rn : null, hosts: n };
+  }
+};
+
+/* ==========================================================================
+ *  1b. FortiAnalyzer 适配器 —— 攻击 / 拦截数据源
+ *      FortiAnalyzer 没有"攻击态势"这种现成接口，能取到的只有日志本身。
+ *      所以这里拉一段时间的日志，再按可配置的字段映射在前端聚合出：
+ *      攻击趋势（逐小时命中/拦截）、攻击类型 TOP、高风险源、拦截率与派生安全分。
+ *      两种接入形态：
+ *        jsonrpc —— POST /jsonrpc.php，账号密码换 session，再查日志（默认）
+ *        rest    —— Bearer Token 直连日志查询接口
+ *      取不到就沿用演示基线，绝不编造。
+ * ======================================================================== */
+const FAZ_DEF = {
+  on:false, mode:'jsonrpc', method:'log fetch',
+  ep:'https://10.252.28.99/jsonrpc.php',
+  user:'', pass:'', token:'',
+  win:60, limit:2000, extra:'',
+  fTime:'@timestamp', fSrc:'srcip', fAttack:'attack', fAction:'action',
+  fSvc:'service', fPolicy:'policyid', fVdom:'vdom'
+};
+/* 字段名别名：不同版本/不同设备的日志字段名有出入，按此顺序兜底 */
+const FAZ_ALIAS = {
+  fTime   : ['@timestamp','timestamp','date','time','@fields.date','_time','reftime'],
+  fSrc    : ['srcip','src','srcaddr','src_host','source',' Source'],
+  fAttack : ['attack','attacksig','attackname','sig','signature','attack_type','subtype','eventtype'],
+  fAction : ['action','act','result','policy_action','verdict'],
+  fSvc    : ['service','service_name','dstservice','protocol','proto','app','appname'],
+  fPolicy : ['policyid','policy','policy_id','id'],
+  fVdom   : ['vdom','vdomname','site','domain']
+};
+/* 签名名 → 大屏展示口径（命中不了就原样显示，不硬译） */
+const FAZ_SIG = [
+  [/sql|sqli|注入/i,                'SQL 注入探测'],
+  [/xss|跨站/i,                     'XSS 跨站脚本'],
+  [/brute|暴力|password|口令/i,     '暴力破解登录'],
+  [/scan|扫描|sweep|probe/i,        '端口扫描探测'],
+  [/web|http|uri|path|路径|php|asp/i,'Web 应用层攻击'],
+  [/dns/i,                          'DNS 异常查询'],
+  [/ddos|flood|洪水|syn|udp/i,      'DDoS 流量型攻击'],
+  [/malware|virus|木马|病毒|trojan|bot/i, '恶意程序传播'],
+  [/exploit|溢出|漏洞利用|cve/i,    '漏洞利用尝试'],
+  [/outbound|出站|c2|beacon/i,      '异常出站流量']
+];
+const FAZ_BLOCK_RE = /^(deny|denied|block|blocked|drop|dropped|reject|rejected|reset|close)$/i;
+const FAZ_PASS_RE  = /^(allow|allowed|pass|passed|accept|accepted|permit|permitted|forward)$/i;
+
+const FazAdapter = {
+  cfg : Object.assign({}, FAZ_DEF, (function(){ try{ return JSON.parse(localStorage.getItem('netcockpit.faz')||'{}'); }catch(e){ return {}; } })()),
+  timeout: 15000,
+  errors: [],
+  lastSync: 0,
+  sample: '',
+
+  save(){ try{ localStorage.setItem('netcockpit.faz', JSON.stringify(this.cfg)); }catch(e){} },
+
+  /* --- 带超时的一次请求；把原始响应留一份，便于在抽屉里排查 --- */
+  async req(body, headers){
+    const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const tm  = setTimeout(function(){ ctl && ctl.abort(); }, this.timeout);
+    try{
+      const r = await fetch(this.cfg.ep, {
+        method : 'POST',
+        headers: Object.assign({ 'Content-Type':'application/json' }, headers || {}),
+        body   : JSON.stringify(body),
+        signal : ctl ? ctl.signal : undefined
+      });
+      const txt = await r.text();
+      let json = null;
+      try{ json = JSON.parse(txt); }catch(e){}
+      return { json: json, raw: txt };
+    } finally { clearTimeout(tm); }
+  },
+
+  /* --- JSON-RPC 登录换 session（FortiAnalyzer 用 user/passw，FortiManager 用 user/passwd）--- */
+  async session(){
+    if (this.cfg.mode !== 'jsonrpc') return null;
+    if (this._sid) return this._sid;
+    const r = await this.req({ id:1, method:'login',
+                               params:[ { user:this.cfg.user, passwd:this.cfg.pass,
+                                          passwd2:this.cfg.pass } ] });
+    const j = r.json;
+    if (!j) throw new Error('响应不是 JSON：' + (r.raw||'').slice(0,140));
+    if (j.error){
+      const m = (j.error.message||'').toLowerCase();
+      if (/login failed|incorrect|password/.test(m)) throw new Error('账号或密码不对');
+      throw new Error('[' + (j.error.code||'?') + '] ' + (j.error.message||'登录失败'));
+    }
+    const res = j.result;
+    const sid = (res && typeof res === 'object') ? (res.session || res.sessionid || res.sid) : res;
+    if (!sid || typeof sid !== 'string') throw new Error('登录成功但未返回 session');
+    this._sid = sid;
+    return sid;
+  },
+
+  /* --- 字段名取值：先按配置名，再按别名，最后按忽略大小写的同名键 ---
+         传参是配置项名（'fSrc'），实际日志字段名从 cfg 取值再套别名表 --- */
+  fld(o, cfgKey){
+    if (!o || !cfgKey) return undefined;
+    const al = FAZ_ALIAS[cfgKey] ? [this.cfg[cfgKey]].concat(FAZ_ALIAS[cfgKey]) : [cfgKey];
+    for (let i=0;i<al.length;i++) if (o[al[i]] !== undefined) return o[al[i]];
+    const ls = Object.keys(o);
+    for (let i=0;i<ls.length;i++)
+      if (ls[i].toLowerCase() === String(cfgKey).toLowerCase()) return o[ls[i]];
+    return undefined;
+  },
+  /* --- 日志数组：FortiAnalyzer 常见 result[{data:[...]}] / {data:[...]} / 直接数组 --- */
+  rows(res){
+    let out = res;
+    if (out && !Array.isArray(out) && Array.isArray(out.data))   out = out.data;
+    if (out && !Array.isArray(out) && Array.isArray(out.rows))   out = out.rows;
+    if (out && !Array.isArray(out) && out.result)                out = out.result;
+    if (!Array.isArray(out)) return [];
+    const hasData = out.some(function(x){ return x && Array.isArray(x.data); });
+    if (hasData) out = out.reduce(function(a,x){ return a.concat(Array.isArray(x.data)?x.data:[]); }, []);
+    return out.filter(function(x){ return x && typeof x === 'object'; });
+  },
+  /* --- 时间：支持 epoch 秒 / 毫秒 / "2026-09-28 10:00:00" / date+time 两字段 --- */
+  ts(o){
+    let v = this.fld(o, 'fTime');
+    if (v === undefined && o.date) v = o.date;
+    if (typeof v === 'number') return v > 1e11 ? Math.round(v/1000) : Math.round(v);
+    if (v === undefined && o.time){
+      const m = String(o.date||'').match(/(\d{4})-(\d{2})-(\d{2})/)
+             && String(o.time).match(/(\d{2}):(\d{2}):(\d{2})/);
+      if (m) return Math.round(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]) / 1000);
+      return null;
+    }
+    const s = String(v || '');
+    const m = s.match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+    if (m) return Math.round(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]) / 1000);
+    if (/^\d+$/.test(s)) return (+s) > 1e11 ? Math.round((+s)/1000) : (+s);
+    return null;
+  },
+  blocked(o){
+    const a = String(this.fld(o, 'fAction') || '');
+    if (FAZ_BLOCK_RE.test(a.trim())) return true;
+    if (FAZ_PASS_RE.test(a.trim()))  return false;
+    return o.blocked === true || o.drop === true || o.dropped === true;
+  },
+  sigName(o){
+    const raw = String(this.fld(o, 'fAttack') || '未分类');
+    for (let i=0;i<FAZ_SIG.length;i++) if (FAZ_SIG[i][0].test(raw)) return FAZ_SIG[i][1];
+    return raw.length > 12 ? raw.slice(0,12) + '…' : raw;
+  },
+
+  /* --- 主查询 --- */
+  async query(){
+    const c = this.cfg;
+    const now = Math.floor(Date.now()/1000);
+    const from = now - Math.max(5, (+c.win || 60)) * 60;
+    const base = {
+      filter : c.extra || '',
+      range  : { time: [ from, now ] },
+      sort   : '@timestamp:desc',
+      offset : 0,
+      limit  : Math.max(1, Math.min(20000, +c.limit || 2000))
+    };
+    let r;
+    if (c.mode === 'jsonrpc'){
+      const sid = await this.session();
+      r = await this.req({ id:2, method: (c.method || 'log fetch'), params:[ base ] }, {}, sid);
+    } else {
+      r = await this.req(base, { 'Authorization': 'Bearer ' + c.token });
+    }
+    const j = r.json;
+    this.lastRaw = (r.raw || '').slice(0, 300);   // 失败时可在抽屉里看到原始返回，便于定位
+    if (!j) throw new Error('响应不是 JSON：' + (this.lastRaw||''));
+    if (j.error) throw new Error('[' + (j.error.code||'?') + '] ' + (j.error.message||'查询失败'));
+    const res = j.result !== undefined ? j.result : j;
+    let list = this.rows(res);
+    if (!list.length && j.data) list = this.rows(j.data);
+    if (!list.length && Array.isArray(j)) list = this.rows(j);
+    if (!list.length) list = this.rows(res && res.data ? [res] : res);
+    if (!list.length && typeof res === 'string') throw new Error('返回内容：' + res.slice(0,140));
+    this.sample = list.length ? JSON.stringify(list[0]).slice(0, 380) : '';
+    return list;
+  },
+
+  /* --- 日志 → 安全面板快照 --- */
+  build(list){
+    const bySig = {}, bySrc = {}, byHour = {};
+    let total = 0, blocked = 0, noTime = 0;
+    list.forEach(function(o){
+      total++;
+      if (FazAdapter.blocked(o)) blocked++;
+      const s = FazAdapter.fld(o, 'fAttack');
+      const sig = FazAdapter.sigName(o);
+      bySig[sig] = (bySig[sig]||0) + 1;
+      const src = String(FazAdapter.fld(o, 'fSrc') || '未知源');
+      if (!bySrc[src]) bySrc[src] = { n:0, sig:{}, deny:0 };
+      bySrc[src].n++;
+      if (FazAdapter.blocked(o)) bySrc[src].deny++;
+      bySrc[src].sig[sig] = (bySrc[src].sig[sig]||0) + 1;
+      const t = FazAdapter.ts(o);
+      if (t === null) noTime++;
+      else { const h = Math.floor(t/3600); byHour[h] = byHour[h] || [0,0];
+             byHour[h][0]++; if (FazAdapter.blocked(o)) byHour[h][1]++; }
+    });
+    if (!total) return null;
+
+    /* 趋势：对齐到当前小时，往前 14 个小时 */
+    const cur = Math.floor(Date.now()/1000/3600);
+    const hours = [], hit = [], blk = [];
+    for (let i=13;i>=0;i--){
+      const h = cur - i, b = byHour[h] || [0,0];
+      hours.push(new Date(h*3600*1000).getHours().toString().padStart(2,'0') + ':00');
+      hit.push(b[0]); blk.push(b[1]);
+    }
+    /* 攻击类型 TOP */
+    const top = Object.keys(bySig).map(function(k){ return { n:k, v:bySig[k] }; })
+      .sort((a,b)=>b.v-a.v).slice(0,5);
+    /* 高风险源 */
+    const risk = Object.keys(bySrc).map(function(k){
+      const o = bySrc[k];
+      let topSig = '—', mx = 0;
+      Object.keys(o.sig).forEach(function(s){ if (o.sig[s] > mx){ mx = o.sig[s]; topSig = s; } });
+      return { src:k, n:o.n, deny:o.deny, sig:topSig };
+    }).sort((a,b)=>b.n-a.n);
+
+    const rate = +(blocked/total*100).toFixed(1);
+    /* 派生安全分：拦截率为主，攻击密度与风险源集中度扣分。
+       这是"由 FortiAnalyzer 真实日志算出来的派生指标"，不是安全产品的官方评分 */
+    const perMin = total / Math.max(5, (+this.cfg.win || 60));
+    const densPen = Math.min(40, Math.max(0, (perMin - 5) * 0.8));
+    const topSrcShare = risk.length ? Math.max.apply(null, risk.map(x=>x.n)) / total : 0;
+    const srcPen = Math.min(20, Math.max(0, (topSrcShare - 0.10) * 200));
+    const score = Math.max(10, Math.min(99, Math.round(rate - densPen - srcPen)));
+
+    return {
+      _real : true,
+      kpi   : { total:total, blocked:blocked, rate:rate, perMin:+perMin.toFixed(2),
+                srcCnt:risk.length, noTime:noTime },
+      secScore: {
+        score: score,
+        grade: score > 94 ? 'A+' : score > 91 ? 'A' : score > 88 ? 'B+' : score > 85 ? 'B' : 'C',
+        sub  : [
+          { k:'边界防护', v:+rate.toFixed(0) },
+          { k:'攻击密度', v:Math.round(100 - densPen) },
+          { k:'风险源收敛', v:Math.round(100 - srcPen) },
+          { k:'命中总量', v:Math.round(Math.max(0, 100 - Math.min(100, perMin * 2))) },
+          { k:'源集中度', v:Math.round(Math.max(0, 100 - topSrcShare*200)) }
+        ]
+      },
+      secTrend: { hours:hours, hit:hit, block:blk, blockedRate:rate },
+      secTop  : top.map(function(x, i){
+        const cols = [[C.red,'#fb7185'],[C.amber,'#fbbf24'],[C.purple,'#c084fc'],[C.blue,'#60a5fa'],[C.cyan,'#67e8f9']];
+        return { n:x.n, v:x.v, c1:cols[i%5][0], c2:cols[i%5][1] };
+      }),
+      secRisk : risk.slice(0,6).map(function(x){
+        const lv = x.n >= 50 ? 'P1' : x.n >= 20 ? 'P2' : 'P3';
+        const col = lv === 'P1' ? C.red : lv === 'P2' ? C.amber : C.blue;
+        return { c:col, t:'源 '+x.src+' 命中 '+x.n+' 次',
+                 s:(x.deny?('已拦截 '+x.deny+' 次 · '):'') + '主攻击 ' + x.sig,
+                 v:lv };
+      })
+    };
+  },
+
+  async fetch(){
+    if (!this.cfg.on || !this.cfg.ep) return null;
+    this.errors = [];
+    try{
+      const list = await this.query();
+      if (!list.length){ this.errors.push('查询成功但返回 0 条日志'); return null; }
+      const s = this.build(list);
+      this.lastSync = Date.now();
+      if (s) return s;
+      this.errors.push('日志字段无法识别');
+      return null;
+    }catch(e){
+      this.errors.push(e.message || String(e));
+      return null;
+    }
+  }
+};
+
+const C = { cyan:'#22d3ee', blue:'#3b82f6', green:'#22c55e', amber:'#f59e0b',
+            red:'#f43f5e', purple:'#a855f7', pink:'#ec4899', lime:'#84cc16', gray:'#94a3b8' };
+
+/* ==========================================================================
+ *  告警分级口径（ITIL v4 业务影响×紧迫度 · 对齐 Zabbix 6 级 severity）
+ *  接真机时：把 zabbix 字段换成你的 trigger.priority 判定规则即可
+ * ======================================================================== */
+const SEV = {
+  P1:{ name:'紧急', en:'Critical', color:C.red,
+       rule:'业务中断 · 必须立即处置',
+       zabbix:'Disaster (5)', act:'trigger 必须挂 action',
+       resp:'5 min 响应 / 2 h 恢复', owner:'网络组 / 安全组' },
+  P2:{ name:'重要', en:'High', color:C.amber,
+       rule:'严重降级 · 本次值班内闭环',
+       zabbix:'High (4)', act:'trigger + 媒体告警',
+       resp:'30 min 响应 / 4 h 恢复', owner:'网络组 / 机房组' },
+  P3:{ name:'警告', en:'Medium', color:C.blue,
+       rule:'亚健康 · 计划内处理',
+       zabbix:'Average (3) / Warning (2)', act:'归并计数，不入媒体告警',
+       resp:'4 h 响应 / 5 d 恢复', owner:'网络组 / 应用组' },
+  P4:{ name:'提示', en:'Info', color:C.gray,
+       rule:'告知性 · 无需动作',
+       zabbix:'Information (1) / Not classified (0)', act:'仅记录',
+       resp:'—', owner:'平台组' }
+};
+
+/* ==========================================================================
+ *  2. 资产基线 & 地图点位
+ *     设备规模取自实况：网络设备 318 · 物理服务器 30 · 存储 20（含群辉 NAS）
+ *     点位可在抽屉「地图与数据」中导入覆盖，也可通过 window.Netcockpit 接口注入
+ * ======================================================================== */
+const ASSET = { net:318, srv:30, sto:20 };
+
+/* base = 健康度基线，status 由 health 派生（<80 异常 / <94 降级 / 其余正常）
+   导入自定义点位时如不提供 base，默认取 97 */
+const SITES_DEF = [
+  { id:'HQ-A',    name:'总部 A 栋',     type:'campus', lat:31.2304, lng:121.4737, base:98.4,
+    assets:{net:96,srv:10,sto:4},  owner:'网络组 · 王工' },
+  { id:'RND-B',   name:'研发中心 B',    type:'campus', lat:31.2044, lng:121.5993, base:97.2,
+    assets:{net:72,srv:8, sto:3},  owner:'网络组 · 李工' },
+  { id:'IDC-1',   name:'数据中心 IDC-1', type:'idc',   lat:31.2556, lng:121.6030, base:96.0,
+    assets:{net:68,srv:7, sto:6},  owner:'机房组 · 张工' },
+  { id:'IDC-2',   name:'数据中心 IDC-2', type:'idc',   lat:31.1121, lng:121.3813, base:92.6,
+    assets:{net:42,srv:3, sto:5},  owner:'机房组 · 张工' },
+  { id:'BR-C',    name:'分支园区 C',    type:'branch', lat:22.5431, lng:114.0579, base:88.5,
+    assets:{net:28,srv:1, sto:1},  owner:'网络组 · 陈工' },
+  { id:'DR-CD',   name:'灾备中心',      type:'dr',     lat:30.5728, lng:104.0668, base:98.8,
+    assets:{net:12,srv:1, sto:1},  owner:'机房组 · 刘工' }
+];
+// 自检：三类资产合计必须与 ASSET 对齐，否则容量口径会失真
+SITES_DEF.forEach(function(s){ if (!s.assets) s.assets = {net:0,srv:0,sto:0}; });
+
+const SITE_TYPE = {
+  idc:   { name:'数据中心', color:'#22d3ee' },
+  campus:{ name:'办公园区', color:'#3b82f6' },
+  branch:{ name:'分支机构', color:'#a855f7' },
+  dr:    { name:'灾备中心', color:'#22c55e' }
+};
+
+const GEO_KEY = 'netcockpit.geo.v1';
+const MapLayer = {
+  points: [],
+  engine: 'builtin',       // 纯离线：内置示意图 / 用户自备底图，无在线瓦片
+  health: {},
+  tmap: null, layer: null, marker: null,
+  svgr: null,
+  filter: 'all',
+
+  /* ---- 点位存取：localStorage 优先，其次内置 ---- */
+  load(){
+    try{
+      const raw = localStorage.getItem(GEO_KEY + '.points');
+      if (raw){ const a = JSON.parse(raw); if (Array.isArray(a) && a.length) return a; }
+    }catch(e){}
+    return SITES_DEF.map(s=>Object.assign({status:1, health:97}, s));
+  },
+  save(){
+    try{ localStorage.setItem(GEO_KEY + '.points', JSON.stringify(this.points)); }catch(e){}
+  },
+
+  boot(){
+    this.points = this.load();
+    this.base = this.loadBase();
+    this.svgr = document.getElementById('mapSvg');
+    this.bindEvents();
+    this.renderLegend();
+    this.renderBuiltin();
+    this.renderAssetBar();
+    this.noteEngine();
+  },
+
+  /* ---- 纯离线：不加载任何在线地图 SDK / 瓦片。
+         点位按经纬度线性投影到画布，底图由用户自备合规图片导入（见抽屉「地图与数据」） ---- */
+  noteEngine(){
+    const el = document.getElementById('mapEng');
+    if (!el) return;
+    const has = !!(this.base && this.base.src);
+    el.textContent = has ? '离线 · 底图' : '离线 · 示意图';
+    el.style.color = has ? '#22c55e' : 'var(--txt-2)';
+    el.style.borderColor = has ? 'rgba(34,197,94,.5)' : 'var(--line)';
+  },
+  /* 离线底图：用户自备、已合规审查的图片 + 它对应的经纬范围，按线性投影叠加。
+     页面不内置任何图源，也不访问境外瓦片。 */
+  base: null,   // { src, latN, lngW, latS, lngE }
+  saveBase(b){
+    this.base = b || null;
+    try{
+      if (b) localStorage.setItem(GEO_KEY + '.base', JSON.stringify(b));
+      else localStorage.removeItem(GEO_KEY + '.base');
+    }catch(e){}
+    this.noteEngine();
+    this.renderBuiltin();
+  },
+  loadBase(){
+    try{
+      const raw = localStorage.getItem(GEO_KEY + '.base');
+      if (raw){ const b = JSON.parse(raw); if (b && b.src) return b; }
+    }catch(e){}
+    return null;
+  },
+  /* 经纬 → 画布（含底图时的对齐映射） */
+  toCanvas(lat, lng, bs, W, H, TOP, BOT){
+    const u = this.base;
+    if (u && isFinite(u.latN) && isFinite(u.latS) && isFinite(u.lngW) && isFinite(u.lngE)
+        && u.lngE > u.lngW && u.latN > u.latS){
+      // 底图角点覆盖整个绘图区
+      const x = (lng - u.lngW) / (u.lngE - u.lngW) * W;
+      const y = TOP + (1 - (lat - u.latS) / (u.latN - u.latS)) * (H - TOP - BOT);
+      return [x, y];
+    }
+    return [ (lng-bs.minLng)/(bs.maxLng-bs.minLng||1)*W,
+             TOP + (1-(lat-bs.minLat)/(bs.maxLat-bs.minLat||1))*(H-TOP-BOT) ];
+  },
+
+  /* 实时在线率接管：由 Zabbix host.available 算出，优先级高于演示基线 */
+  live: {},
+  eff(p){ const l = this.live && this.live[p.id]; return l ? l.st : p.status; },
+  rate(p){ const l = this.live && this.live[p.id]; return l ? l.rate : null; },
+  centerOf(){
+    const p = this.points;
+    if (!p.length) return { lat:30.6, lng:116.5 };
+    const s = p.reduce((a,b)=>({lat:a.lat+b.lat, lng:a.lng+b.lng}), {lat:0,lng:0});
+    return { lat:+(s.lat/p.length).toFixed(4), lng:+(s.lng/p.length).toFixed(4) };
+  },
+  /* ---- 渲染：离线示意图（无在线底图，纯相对位置） ---- */
+  sync(){
+    /* 纯离线渲染，无在线底图，筛选态直接在渲染层隐藏，不改 this.points（避免把筛选写回存储） */
+    this.renderBuiltin();
+  },
+  renderBuiltin(){
+    const el = document.getElementById('mapBuiltin');
+    if (!el) return;
+    el.style.display = 'block';
+    const W = 660, H = 218;
+    const p = this.filter === 'all'
+      ? this.points
+      : this.points.filter(q => q.type === this.filter || q.id === this.filter);
+    // 绘制区纵向避开顶部图例(~32px)与底部资产条(~50px)
+    const TOP = 34, BOT = 52;
+    const bs = this.bounds();
+    let g = '';
+    /* 用户自备底图：铺在网格之下、点位之下 */
+    if (this.base && this.base.src){
+      g += '<image x="0" y="'+TOP+'" width="'+W+'" height="'+(H-TOP-BOT)+'" '
+         + 'preserveAspectRatio="none" xlink:href="'+this.base.src+'" opacity=".92"/>';
+    }
+    for (let i=0;i<=8;i++) g += '<line x1="'+(i*W/8)+'" y1="'+TOP+'" x2="'+(i*W/8)+'" y2="'+(H-BOT)+
+      '" stroke="rgba(64,158,255,'+(this.base?'.05':'.07')+')"/>';
+    for (let j=0;j<=5;j++) g += '<line x1="0" y1="'+(TOP + j*(H-TOP-BOT)/5)+'" x2="'+W+'" y2="'+(TOP + j*(H-TOP-BOT)/5)+
+      '" stroke="rgba(64,158,255,'+(this.base?'.05':'.07')+')"/>';
+    const PX = (q) => this.toCanvas(q.lat, q.lng, bs, W, H, TOP, BOT)[0];
+    const PY = (q) => this.toCanvas(q.lat, q.lng, bs, W, H, TOP, BOT)[1];
+    this._bp = p.map(q=>({p:q, x:PX(q), y:PY(q)}));
+    // 标签避让：横向相邻（<46px）的点位标签向上阶梯错开，避免重叠
+    const sorted = this._bp.slice().sort((a,b)=>a.x-b.x);
+    let lastX = -1e9, lane = 0;
+    sorted.forEach(function(o){
+      lane = (o.x - lastX < 46) ? lane + 1 : 0;
+      o.lane = lane; lastX = o.x;
+    });
+    // 连线（按内置顺序串联骨干）
+    for (let i=0;i<this._bp.length-1;i++){
+      const A = this._bp[i], B = this._bp[i+1];
+      g += '<path d="M '+A.x+' '+A.y+' Q '+((A.x+B.x)/2)+' '+((A.y+B.y)/2-16)+', '+B.x+' '+B.y+
+           '" fill="none" stroke="rgba(34,211,238,.28)" stroke-width="1" stroke-dasharray="4 5" class="flow"/>';
+    }
+    this._bp.forEach(function(o){
+      const q = o.p, s = MapLayer.eff(q), c = s===0?'#f43f5e':s===2?'#f59e0b':'#22d3ee';
+      const ty = o.y - 16 - o.lane * 13;
+      g += '<g class="mpin" data-id="'+q.id+'" style="cursor:pointer">'+
+        '<circle cx="'+o.x+'" cy="'+o.y+'" r="11" fill="'+c+'" fill-opacity=".1">'+
+          (s!==1?'<animate attributeName="r" values="10;15;10" dur="1.8s" repeatCount="indefinite"/><animate attributeName="fill-opacity" values=".18;0;.18" dur="1.8s" repeatCount="indefinite"/>':'')+
+        '</circle>'+
+        '<circle cx="'+o.x+'" cy="'+o.y+'" r="4.6" fill="'+c+'" style="filter:drop-shadow(0 0 6px '+c+')"/>'+
+        '<text x="'+o.x+'" y="'+ty+'" text-anchor="middle" style="font-size:10px;fill:#cfe6ff;font-weight:600">'+q.name+'</text>'+
+        '<text x="'+o.x+'" y="'+(ty+12)+'" text-anchor="middle" class="tk2">'+q.lat.toFixed(3)+', '+q.lng.toFixed(3)+'</text>'+
+      '</g>';
+    });
+    this.svgr.innerHTML = g;
+  },
+  bounds(){
+    const p = this.points; if (!p.length) return {minLat:0,maxLat:1,minLng:0,maxLng:1};
+    const b = { minLat:Math.min.apply(null,p.map(x=>x.lat)), maxLat:Math.max.apply(null,p.map(x=>x.lat)),
+                minLng:Math.min.apply(null,p.map(x=>x.lng)), maxLng:Math.max.apply(null,p.map(x=>x.lng)) };
+    // 12% 边距：min-max 归一化会让极值点位贴到画布边缘
+    const pl = (b.maxLat-b.minLat)*0.12 || 1, pg = (b.maxLng-b.minLng)*0.12 || 1;
+    return { minLat:b.minLat-pl, maxLat:b.maxLat+pl, minLng:b.minLng-pg, maxLng:b.maxLng+pg };
+  },
+
+  renderLegend(){
+    const box = document.getElementById('mapLegend');
+    if (!box) return;
+    const items = [{k:'all', name:'全部'}].concat(Object.keys(SITE_TYPE).map(k=>({k, name:SITE_TYPE[k].name})));
+    box.innerHTML = items.map(i=>
+      '<span class="chip'+(this.filter===i.k?' on':'')+'" data-f="'+i.k+'">'+i.name+'</span>').join('');
+    Array.prototype.forEach.call(box.querySelectorAll('.chip'), function(el){
+      el.onclick = function(){ MapLayer.filter = el.getAttribute('data-f');
+        MapLayer.renderLegend(); MapLayer.sync(); };
+    });
+    document.getElementById('mapSiteCnt').textContent = this.points.length + ' 处点位';
+  },
+
+  renderAssetBar(){
+    const box = document.getElementById('assetBar');
+    if (!box) return;
+    const sum = {net:0,srv:0,sto:0};
+    this.points.forEach(p=>{ sum.net += p.assets.net||0; sum.srv += p.assets.srv||0; sum.sto += p.assets.sto||0; });
+    const ok = (sum.net===ASSET.net && sum.srv===ASSET.srv && sum.sto===ASSET.sto);
+    box.innerHTML =
+      '<div class="a" style="border-color:rgba(34,211,238,.4)"><b style="color:var(--cyan)">'+sum.net+'<i>台</i></b><span>网络设备</span></div>'+
+      '<div class="a" style="border-color:rgba(59,130,246,.4)"><b style="color:var(--blue)">'+sum.srv+'<i>台</i></b><span>物理服务器</span></div>'+
+      '<div class="a" style="border-color:rgba(168,85,247,.4)"><b style="color:var(--purple)">'+sum.sto+'<i>台</i></b><span>存储 / NAS</span></div>'+
+      '<div class="a"><b style="color:'+(ok?'var(--green)':'var(--amber)')+';font-size:12px;line-height:22px">'+
+        (ok?'合计一致':'合计 '+(ASSET.net+ASSET.srv+ASSET.sto)+' 台待校准')+'</b><span>资产基线</span></div>';
+  },
+
+  /* ---- 信息卡 ---- */
+  pop(p, xy){
+    const box = document.getElementById('mapPop');
+    if (!box) return;
+    const c = q => q===0?'#f43f5e':q===2?'#f59e0b':'#22c55e';
+    const st = {0:'异常',1:'正常',2:'降级'};
+    const s = this.eff(p), r = this.rate(p);
+    box.innerHTML =
+      '<h4><i style="background:'+c(s)+';box-shadow:0 0 7px '+c(s)+'"></i>'+p.name+'</h4>'+
+      '<div class="en">'+SITE_TYPE[p.type].name.toUpperCase()+' · '+p.id+'</div>'+
+      '<div class="as">'+
+        '<div><span>网络</span><b>'+(p.assets.net||0)+'</b></div>'+
+        '<div><span>服务器</span><b>'+(p.assets.srv||0)+'</b></div>'+
+        '<div><span>存储</span><b>'+(p.assets.sto||0)+'</b></div>'+
+      '</div>'+
+      '<div class="kv"><span>'+(r!=null?'Zabbix 在线率':'区域健康')+'</span><b style="color:'+c(s)+'">'+
+        (r!=null ? r+'% · '+st[s] : (this.health[p.id]!==undefined?this.health[p.id]+'%':st[p.status]))+'</b></div>'+
+      '<div class="kv"><span>经纬度</span><b>'+p.lat.toFixed(4)+', '+p.lng.toFixed(4)+'</b></div>'+
+      '<div class="kv"><span>维护责任人</span><b>'+p.owner+'</b></div>'+
+      '<div class="foot">点击其它点位可切换 · 在「自定义 → 地图与数据」可编辑点位</div>';
+    box.classList.add('show');
+    const panel = document.getElementById('mapPanel').getBoundingClientRect();
+    let x, y;
+    if (xy){ x = xy.x; y = xy.y; }
+    else {
+      const b = this._bp && this._bp.find(o=>o.p.id===p.id);
+      if (!b) { x = 20; y = 20; } else {
+        const r = this.svgr.getBoundingClientRect();
+        const k = r.width / 660;
+        x = r.left - panel.left + b.x * k + 16; y = r.top - panel.top + b.y * k - 40;
+      }
+    }
+    box.style.left = Math.max(8, Math.min(panel.width - 250, x)) + 'px';
+    box.style.top  = Math.max(8, Math.min(panel.height - 150, y)) + 'px';
+  },
+  hidePop(){ const b = document.getElementById('mapPop'); if (b) b.classList.remove('show'); },
+
+  bindEvents(){
+    const svg = this.svgr;
+    if (svg){
+      svg.addEventListener('click', function(e){
+        const g = e.target.closest ? e.target.closest('.mpin') : null;
+        if (g){ const p = MapLayer.points.find(x=>x.id===g.getAttribute('data-id')); if (p) MapLayer.pop(p, null); }
+      });
+    }
+    document.getElementById('mapEng').onclick = function(){
+      MapLayer.applyEngine();
+    };
+    const pn = document.getElementById('mapPanel');
+    pn.addEventListener('click', function(e){ if (e.target === pn) MapLayer.hidePop(); });
+  },
+  applyEngine(){
+    /* 只有一种渲染路径：离线画布。底图由 this.base 决定，无需切换 */
+    this.noteEngine();
+    this.renderBuiltin();
+  },
+
+  /* ---- 数据注入（供二次开发调用） ---- */
+  setPoints(arr){
+    this.points = arr.map(function(x){
+      return { status:1, health:97, type:'campus', owner:'—', assets:{net:0,srv:0,sto:0}, ...x };
+    });
+    this.save(); this.renderLegend(); this.renderBuiltin(); this.renderAssetBar();
+  },
+  csv2points(txt){
+    const lines = txt.trim().split(/\r?\n/).filter(Boolean);
+    const head = lines[0].split(',').map(s=>s.trim().toLowerCase());
+    return lines.slice(1).map(function(L, i){
+      const c = L.split(',').map(s=>s.trim());
+      const o = {}; head.forEach((h,j)=>{ o[h] = c[j]; });
+      return {
+        id: o.id || ('P'+(i+1)), name: o.name || o.id || ('点位'+(i+1)),
+        lat: parseFloat(o.lat) || 0, lng: parseFloat(o.lng) || 0,
+        type: o.type || 'campus', status: parseInt(o.status||'1', 10) || 1,
+        base: o.base === undefined ? undefined : parseFloat(o.base),
+        owner: o.owner || '—',
+        assets:{ net: parseInt(o.net||'0',10)||0, srv: parseInt(o.srv||'0',10)||0, sto: parseInt(o.sto||'0',10)||0 }
+      };
+    });
+  }
+};
+
+const Mock = {
+  t: 0,
+  rnd:(a,b,d=1)=> +(a + Math.random()*(b-a)).toFixed(d),
+  walk:(v,amp,min,max)=> Math.min(max, Math.max(min, v + (Math.random()-0.45)*amp)),
+  build(){
+    const T = ++this.t, d = {kpi:[],band:{},secScore:{},secTrend:{},secTop:[],secRisk:[],
+      link:[],sla:[],cap:[],zone:[],ticket:[],topo:{},alerts:[]};
+
+    /* --- 全局 KPI（规模按实况：网络 318 · 服务器 30 · 存储 20）--- */
+    const totalDev = ASSET.net, online = totalDev - Math.round(this.rnd(2,6,0));
+    const alarms = 34 + Math.round(Math.sin(T/7)*8);
+    const attacks = 1240 + Math.round(Math.sin(T/5)*180);
+    const blocked = this.rnd(86,94,2);
+    const slaV = +this.walk(99.94,.05,99.6,99.99).toFixed(3);
+    // 告警分级分布：与底部告警流分级统计同源，便于口径校验
+    const mix = { P1:2 + (T%3), P2:7 + (T%5), P3:14 + (T%7), P4:21 + (T%11) };
+    d.mix = mix;
+
+    /* --- 点位健康：回写地图（异常/降级/正常三态由健康度派生）--- */
+    const hm = {};
+    MapLayer.points.forEach(function(p){
+      const h = +(+(p.base === undefined ? 97 : p.base) + (Math.random()-0.45)*2.2).toFixed(1);
+      hm[p.id] = h;
+      p.status = h < 80 ? 0 : h < 94 ? 2 : 1;
+    }, this);
+    MapLayer.health = hm;
+    d.sites = MapLayer.points.map(p => ({ id:p.id, name:p.name, health:hm[p.id]||0 }));
+    d.kpi = [
+      {k:'纳管设备',  v:totalDev.toLocaleString(), u:'台', c:C.cyan,
+       d:'网络 '+ASSET.net+' · 服 '+ASSET.srv+' · 存 '+ASSET.sto},
+      {k:'链路健康度',v:this.rnd(97.2,99.4,1), u:'%',  c:C.green, d:'较昨日 +0.4%'},
+      {k:'活动告警',  v:alarms,                u:'条', c:mix.P1>=3?C.red:C.amber,
+       d:'P1 '+mix.P1+' · P2 '+mix.P2+' · P3 '+mix.P3},
+      {k:'安全事件',  v:attacks.toLocaleString(), u:'次/24h', c:C.purple, d:'拦截率 '+blocked+'%'},
+      {k:'骨干吞吐',  v:this.rnd(41,58,1),     u:'Gbps',c:C.blue,  d:'容量 '+this.rnd(58,71,1)+'%'},
+      {k:'业务可用性',v:slaV,                  u:'%',   c:C.cyan,   d:'目标 99.95%'},
+      {k:'平均时延',  v:this.rnd(11,18,1),     u:'ms',  c:C.lime,   d:'较昨日 -1.2ms'}
+    ];
+
+    /* --- 骨干吞吐 --- */
+    d.band = {
+      items:[ {n:this.rnd(41,58,1), u:'入向 Inbound Gbps', c:C.cyan},
+              {n:this.rnd(33,47,1), u:'出向 Outbound Gbps',c:C.blue},
+              {n:this.rnd(0.05,0.4,2), u:'骨干丢包率 %', c:C.amber},
+              {n:this.rnd(0.20,0.9,2), u:'重传率 %',      c:C.pink} ],
+      cap:this.rnd(58,71,1),
+      spark:Array.from({length:46},(_,i)=> 42 + Math.sin(i/5.5)*7 + Math.sin(i/2.1)*2.4 + this.rnd(-1.6,1.6))
+    };
+
+    /* --- 安全评分 --- */
+    const score = this.walk(92,2.4,86,98);
+    d.secScore = {
+      score:+score.toFixed(1), grade: score>94?'A+':score>91?'A':score>88?'B+':'B',
+      sub:[ {k:'边界防护',v:this.rnd(94,99,1)}, {k:'主机加固',v:this.rnd(88,97,1)},
+            {k:'漏洞补丁',v:this.rnd(82,95,1)}, {k:'访问控制',v:this.rnd(90,98,1)},
+            {k:'数据加密',v:this.rnd(93,99,1)} ]
+    };
+
+    /* --- 攻击趋势 --- */
+    d.secTrend = {
+      hours:Array.from({length:14},(_,i)=> String(i*2).padStart(2,'0')+':00'),
+      hit:Array.from({length:14},()=> Math.round(this.rnd(20,120))),
+      block:Array.from({length:14},()=> Math.round(this.rnd(40,190))),
+      blockedRate:this.rnd(86.4,93.8,1)
+    };
+
+    /* --- 攻击类型 TOP --- */
+    d.secTop = [
+      {n:'Web 应用层攻击',v:this.rnd(2800,3400,0), c1:C.red,    c2:'#fb7185'},
+      {n:'暴力破解 SSH',  v:this.rnd(1600,2200,0), c1:C.amber,  c2:'#fbbf24'},
+      {n:'SQL 注入探测',  v:this.rnd(900,1400,0),  c1:C.purple, c2:'#c084fc'},
+      {n:'异常出站流量',  v:this.rnd(500,900,0),   c1:C.blue,   c2:'#60a5fa'},
+      {n:'端口扫描探测',  v:this.rnd(300,600,0),   c1:C.cyan,   c2:'#67e8f9'}
+    ].sort((a,b)=>b.v-a.v);
+
+    /* --- 高风险对象 --- */
+    d.secRisk = [
+      {c:C.red,   t:'FW-02 策略命中率异常',  s:'边界防火墙 · 12 次/分钟', v:'P1'},
+      {c:C.red,   t:'C9300-SW-07 CPU 100%', s:'生产区 · 疑似挖矿进程',    v:'P1'},
+      {c:C.amber, t:'PAN-01 未签名应用放行', s:'应用区 · 4 条策略',       v:'P2'},
+      {c:C.amber, t:'FTN-400F 证书剩余 9 天',s:'对外官网 · *.corp.com',   v:'P2'},
+      {c:C.blue,  t:'N9K-9524 固件落后',     s:'Nexus 9k · 10.2.5x',      v:'P3'},
+      {c:C.blue,  t:'新设备接入未审批',      s:'IDF-3 · MAC 未知',        v:'P3'}
+    ];
+
+    /* --- 端口流量 --- */
+    d.link = [
+      {n:'Eth1/1 Core-01→Up', v:this.rnd(72,94,1), p:this.rnd(0,0.4,2), c1:C.cyan,   c2:'#38bdf8'},
+      {n:'Eth1/2 Core-02→Up', v:this.rnd(65,88,1), p:this.rnd(0,0.5,2), c1:C.blue,   c2:'#6366f1'},
+      {n:'Eth1/48 Agg-01→DC', v:this.rnd(45,70,1), p:this.rnd(0,1.2,2), c1:C.purple, c2:'#a855f7'},
+      {n:'Eth1/12 Agg-02→OF', v:this.rnd(36,58,1), p:this.rnd(0,0.8,2), c1:C.green,  c2:'#22c55e'},
+      {n:'Eth1/24 Agg-03→DMZ',v:this.rnd(24,46,1), p:this.rnd(0,2.1,2), c1:C.amber,  c2:'#f59e0b'},
+      {n:'Eth1/06 Agg-04→ID2',v:this.rnd(18,38,1), p:this.rnd(0,1.6,2), c1:C.pink,   c2:'#ec4899'},
+      {n:'Eth1/30 Acc-11→F7', v:this.rnd(10,26,1), p:this.rnd(0,0.6,2), c1:C.lime,   c2:'#84cc16'},
+      {n:'Eth1/09 Acc-08→F4', v:this.rnd(8,22,1),  p:this.rnd(0,1.1,2), c1:C.cyan,   c2:'#22d3ee'}
+    ];
+
+    /* --- 拓扑 --- */
+    d.topo = {
+      health:this.rnd(97.4,99.3,1), devices:totalDev,
+      nodes:[
+        {id:'fw1', x:250, y:22,  w:150,h:38, t:'FW-01',    s:'Firepower 2100', k:'fw'},
+        {id:'fw2', x:560, y:22,  w:150,h:38, t:'FW-02',    s:'Palo Alto 820',  k:'fw'},
+        {id:'fw3', x:870, y:22,  w:150,h:38, t:'FTN-400F', s:'Fortinet 400F',  k:'fw'},
+        {id:'c1',  x:250, y:118, w:150,h:40, t:'Core-01',  s:'N9K-9336',       k:'core', st:1},
+        {id:'c2',  x:560, y:118, w:150,h:40, t:'Core-02',  s:'N9K-9336',       k:'core', st:1},
+        {id:'c3',  x:870, y:118, w:150,h:40, t:'Core-03',  s:'N9K-93180',      k:'core', st:0},
+        {id:'a1',  x:118, y:222, w:134,h:36, t:'AGG-01',   s:'C9500',          k:'agg'},
+        {id:'a2',  x:355, y:222, w:134,h:36, t:'AGG-02',   s:'C9300',          k:'agg'},
+        {id:'a3',  x:592, y:222, w:134,h:36, t:'AGG-03',   s:'C9300',          k:'agg'},
+        {id:'a4',  x:829, y:222, w:134,h:36, t:'AGG-04',   s:'C9200',          k:'agg'},
+        {id:'t1',  x:118, y:322, w:134,h:32, t:'生产区',    s:'PROD · 512',     k:'term'},
+        {id:'t2',  x:355, y:322, w:134,h:32, t:'办公网',    s:'CAMPUS · 486',   k:'term'},
+        {id:'t3',  x:592, y:322, w:134,h:32, t:'DMZ 区',   s:'DMZ · 96',       k:'term', st:2},
+        {id:'t4',  x:829, y:322, w:134,h:32, t:'无线 / IDF',s:'WLAN · 192',    k:'term'}
+      ],
+      links:[['fw1','c1'],['fw1','c2'],['fw2','c2'],['fw2','c3'],['fw3','c3'],['fw3','c1'],
+             ['c1','a1'],['c1','a2'],['c2','a2'],['c2','a3'],['c3','a3'],['c3','a4'],['c2','a4'],
+             ['a1','t1'],['a2','t2'],['a3','t3'],['a4','t4'],['a2','t4']]
+    };
+
+    /* --- 业务可用率 --- */
+    d.sla = [
+      {n:'交易支付核心', v:this.rnd(99.92,100,2), c:C.green, s:'P0 · 12.4k QPS'},
+      {n:'统一身份认证', v:this.rnd(99.85,99.99,2),c:C.cyan, s:'P0 · 8.1k QPS'},
+      {n:'供应链中台',   v:+this.rnd(99.6,99.95,3).toFixed(2), c:C.cyan, s:'P1 · 4.6k QPS'},
+      {n:'协同办公 OA',  v:+this.rnd(99.4,99.9,3).toFixed(2),  c:C.amber,s:'P2 · 1.2k QPS'},
+      {n:'数据湖查询',   v:+this.rnd(98.8,99.7,3).toFixed(2),  c:C.amber,s:'P2 · 860 QPS'},
+      {n:'对外官网',     v:+this.rnd(99.0,99.9,3).toFixed(2),  c:C.blue, s:'P3 · 240 QPS'},
+      {n:'视频会议',     v:+this.rnd(97.6,99.3,3).toFixed(2),  c:C.red,  s:'P2 · 波动告警', bad:1}
+    ];
+
+    /* --- 容量水位（含 Dell 服务器池与存储池）--- */
+    d.cap = [
+      {n:'核心交换机 CPU', v:this.rnd(28,64,0),  u:'%',  c:C.green},
+      {n:'核心交换机内存', v:this.rnd(41,72,0),  u:'%',  c:C.cyan},
+      {n:'PowerEdge 池 CPU', v:this.rnd(46,78,0),u:'%',  c:C.blue},
+      {n:'存储池容量',     v:this.rnd(58,76,0),  u:'%',  c:C.purple},
+      {n:'机房温度',       v:this.rnd(21,27,1),  u:'°C', c:C.amber},
+      {n:'出口带宽',       v:this.rnd(56,74,0),  u:'%',  c:C.pink},
+      {n:'IP 地址池',      v:this.rnd(63,81,0),  u:'%',  c:C.lime}
+    ];
+
+    /* --- 工单与变更 --- */
+    d.ticket = [
+      {c:C.red,   t:'Core-03 /cpu 持续 96%',     s:'工单 INC-20871 · 网络组 · 12min', v:'处理中'},
+      {c:C.amber, t:'IDC-2 冷链告警 Temperature',s:'工单 INC-20866 · 机房 · 34min',   v:'处理中'},
+      {c:C.blue,  t:'C9300 固件 10.2.5 → 10.2.9',s:'变更 CHG-0431 · 窗口 02:00',     v:'待批准'},
+      {c:C.blue,  t:'DMZ ACL 策略基线复核',      s:'变更 CHG-0429 · 今日 18:00',     v:'待执行'},
+      {c:C.cyan,  t:'FW-02 日志外发任务',        s:'任务 TSK-0912 · 已完成',          v:'已关闭'}
+    ];
+
+    /* --- 实时告警流（按 P1~P4 分级口径编排，每条标注主责组）--- */
+    const pool = [
+      ['P1','Core-03 <b>Ethernet1/28</b> 双上行全断 · 业务中断','10.20.1.3','网络组'],
+      ['P1','C9300-SW-07 <b>CPU util 100%</b> 持续 5min · 疑似挖矿','10.30.8.7','安全组'],
+      ['P1','<b>出口专线</b> 电信线路中断 · 出向带宽归零','10.0.0.1','网络组'],
+      ['P1','<b>边界防火墙 FW-02</b> 主备切换失败 · 防护降级','10.0.0.9','安全组'],
+      ['P2','FW-02 检出 <b>SQL 注入</b> 特征 · 命中 240 次/min','10.0.0.9','安全组'],
+      ['P2','IDC-2 机柜 <b>温度 29.4°C</b> 超 28°C 阈值','10.60.2.1','机房组'],
+      ['P2','PAN-01 <b>会话数 78%</b> · 逼近容量上限','10.0.1.2','安全组'],
+      ['P2','<b>AGG-04</b> 上行丢包 2.1% · 超 2% 基线','10.40.4.4','网络组'],
+      ['P2','<b>视频会议</b> 可用性跌至 97.6% · 触发降级','10.90.9.9','应用组'],
+      ['P3','Zabbix <b>自动发现</b> 新增设备 IDF-7 · 待纳管','10.70.7.7','网络组'],
+      ['P3','<b>官网</b> 证书剩余 9 天 · 建议 30 天前更换','*.corp.com','安全组'],
+      ['P3','<b>办公网</b> 新终端未登记接入 · MAC 00:1b:44:11:3a:b7','10.80.5.5','网络组'],
+      ['P3','N9K-9524 <b>固件落后</b> 一个特性组 · 10.2.5x','10.20.2.5','网络组'],
+      ['P3','<b>DMZ</b> ACL 基线偏离 · 3 条策略未复核','10.50.3.3','安全组'],
+      ['P4','备份链路 <b>Eth1/30</b> 抖动消除 · 状态恢复','10.20.1.4','网络组'],
+      ['P4','FW-02 <b>策略备份</b> 完成 · 快照 20260927','10.0.0.9','安全组'],
+      ['P4','Zabbix <b>配置巡检</b> 通过 · 0 项异常','127.0.0.1','平台组'],
+      ['P4','<b>核心交换</b> 配置文件已同步至配置库','10.20.1.1','网络组']
+    ];
+    // 告警流：按 P1→P4 分级排序的滚动窗口，保证各级都不会被高等级挤掉
+    const rot = ((this.t*2) % pool.length + pool.length) % pool.length;
+    const pool2 = pool.slice(rot).concat(pool.slice(0, rot));
+    const bySev = {P1:[],P2:[],P3:[],P4:[]};
+    pool2.forEach(p=>{ if(bySev[p[0]]) bySev[p[0]].push(p); });
+    const keys = ['P1','P2','P3','P4'], chosen = [];
+    for(let i=0;i<4;i++) keys.forEach(k=>{ const a = bySev[k]; if (a[i]) chosen.push(a[i]); });
+    const win = [];
+    keys.forEach(k=>{ bySev[k].slice().reverse().slice(0,3).forEach(p=>win.push(p)); });
+    d.alerts = win.map(function(p,i){
+      return { lv:p[0], msg:p[1], ip:p[2], g:p[3], tm: fmtTime(Date.now() - i*43000) };
+    });
+    return d;
+  }
+};
+
+function fmtTime(ts){
+  const d = new Date(ts), p = n => String(n).padStart(2,'0');
+  return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+}
+
+/* ==========================================================================
+ *  2. 图表组件（纯 SVG / DOM，零第三方依赖）
+ * ======================================================================== */
+function donut(val, max, color, cx, cy, r, thick){
+  const SW = Math.PI*0.75, rr = r - thick/2, arc = rr*SW;
+  const len = arc * Math.max(0, Math.min(1, val/max));
+  return `
+  <svg viewBox="0 0 ${cx*2} ${cy*2}" style="width:100%;height:${cx*2}px">
+    <defs><linearGradient id="dg${color.replace('#','')}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${color}"/><stop offset="1" stop-color="#ffffff" stop-opacity=".7"/>
+    </linearGradient></defs>
+    <g transform="rotate(135 ${cx} ${cy})">
+      <circle cx="${cx}" cy="${cy}" r="${rr}" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="${thick}"
+        stroke-dasharray="${arc} ${arc*2}" stroke-linecap="round"/>
+      <circle cx="${cx}" cy="${cy}" r="${rr}" fill="none" stroke="url(#dg${color.replace('#','')})" stroke-width="${thick}"
+        stroke-dasharray="${len} ${arc*2}" stroke-linecap="round"
+        style="filter:drop-shadow(0 0 8px ${color})"/>
+    </g>
+    <text x="${cx}" y="${cy+2}" text-anchor="middle" class="num"
+      style="font-size:${thick*1.45}px;font-weight:800;fill:${color}">${val}</text>
+    <text x="${cx}" y="${cy+18}" text-anchor="middle" class="tk2">/ 100</text>
+  </svg>`;
+}
+
+function sparkline(vals, w, h, color, fillId){
+  const mn = Math.min.apply(null,vals), mx = Math.max.apply(null,vals), sp = (mx-mn)||1;
+  const pts = vals.map((v,i)=>[ i/(vals.length-1)*w, h - ((v-mn)/sp)*(h-14) - 7 ]);
+  const line = pts.map((p,i)=> (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area = line + ' L '+w+' '+h+' L 0 '+h+' Z';
+  const last = pts[pts.length-1];
+  return `
+  <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:${h}px">
+    <defs><linearGradient id="${fillId}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${color}" stop-opacity=".40"/>
+      <stop offset="1" stop-color="${color}" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${[0.25,0.5,0.75].map(g=>'<line x1="0" y1="'+(h*g)+'" x2="'+w+'" y2="'+(h*g)+'" stroke="rgba(255,255,255,.05)"/>').join('')}
+    <path d="${area}" fill="url(#${fillId})"/>
+    <path d="${line}" fill="none" stroke="${color}" stroke-width="1.8" style="filter:drop-shadow(0 0 5px ${color})"/>
+    <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="7" fill="${color}" opacity=".2"/>
+    <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3" fill="${color}"/>
+  </svg>`;
+}
+
+function stackedBars(hours, a, b, h){
+  const n = hours.length, w = 640, bw = w/n*0.46, gap = (w - bw*n)/(n+1);
+  const mx = Math.max.apply(null, a.concat(b));
+  let s = '';
+  for(let i=0;i<n;i++){
+    const x = gap + i*(bw+gap);
+    const ha = a[i]/mx*(h-16), hb = b[i]/mx*(h-16);
+    s += '<g><rect x="'+x.toFixed(1)+'" y="'+(h-ha-hb).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+hb.toFixed(1)+'" rx="2" fill="#a855f7" opacity=".55"/>'+
+         '<rect x="'+x.toFixed(1)+'" y="'+(h-ha).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+ha.toFixed(1)+'" rx="2" fill="#f43f5e" style="filter:drop-shadow(0 0 4px #f43f5e)"/></g>';
+  }
+  const step = Math.ceil(n/7);
+  for(let i=0;i<n;i+=step){
+    s += '<text x="'+(gap+i*(bw+gap)+bw/2).toFixed(1)+'" y="'+(h+13)+'" text-anchor="middle" class="tk2">'+hours[i]+'</text>';
+  }
+  return { svg:'<svg viewBox="0 0 '+w+' '+(h+16)+'" style="width:100%;height:100%">'+s+'</svg>', mx:mx };
+}
+
+function miniRing(pct, color, size){
+  const r = size/2 - 4, cx = size/2, cy = size/2;
+  const arc = 2*Math.PI*r*0.75, len = arc*Math.min(1,pct/100);
+  return '<svg viewBox="0 0 '+size+' '+size+'" style="width:'+size+'px;height:'+size+'px;flex:0 0 '+size+'px">'+
+    '<g transform="rotate(135 '+cx+' '+cy+')">'+
+      '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="5" stroke-dasharray="'+arc+' '+arc*2+'" stroke-linecap="round"/>'+
+      '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="5" stroke-dasharray="'+len+' '+arc*2+'" stroke-linecap="round" style="filter:drop-shadow(0 0 5px '+color+')"/>'+
+    '</g>'+
+    '<text x="'+cx+'" y="'+(cy+1)+'" text-anchor="middle" class="num" style="font-size:12px;font-weight:700;fill:'+color+'">'+pct+'</text></svg>';
+}
+
+/* ==========================================================================
+ *  3. 渲染
+ * ======================================================================== */
+const $ = id => document.getElementById(id);
+
+function renderKPI(d){
+  $('kpis').innerHTML = d.kpi.map(function(k){
+    return '<div class="kpi" style="--c:'+k.c+'"><div class="k">'+k.k+'</div>'+
+      '<div class="v num">'+k.v+'<small>'+k.u+'</small></div><div class="d">'+k.d+'</div></div>';
+  }).join('');
+}
+function renderSecScore(s){
+  $('secScore').innerHTML =
+    '<div style="display:grid;grid-template-columns:112px 1fr;gap:12px;height:100%">'+
+      '<div>'+donut(s.score,100,C.cyan,58,58,46,13)+
+        '<div style="text-align:center;font-size:12px;color:var(--txt-2);margin-top:-2px">'+
+        '综合评级 <b style="color:'+C.cyan+';font-size:16px">'+s.grade+'</b></div></div>'+
+      '<div style="display:flex;flex-direction:column;justify-content:center;gap:9px">'+
+        s.sub.map(function(x){
+          return '<div class="row" style="grid-template-columns:64px 1fr 40px">'+
+            '<span style="font-size:11.5px;color:var(--txt-2)">'+x.k+'</span>'+
+            '<span class="tr"><span class="fl" style="--c1:'+C.cyan+';--c2:#0ea5e9;width:'+x.v+'%"></span></span>'+
+            '<span class="vl" style="font-size:11px">'+x.v+'<i>%</i></span></div>';
+        }).join('')+
+      '</div></div>';
+}
+function renderSecTrend(t){
+  const r = stackedBars(t.hours, t.hit, t.block, 116);
+  $('blkRate').textContent = t.blockedRate + '%';
+  $('secTrend').innerHTML =
+    '<div style="display:flex;gap:14px;font-size:11px;color:var(--txt-2);margin-bottom:4px">'+
+      '<span><i style="display:inline-block;width:8px;height:8px;background:'+C.red+';border-radius:2px"></i> 命中</span>'+
+      '<span><i style="display:inline-block;width:8px;height:8px;background:'+C.purple+';opacity:.55;border-radius:2px"></i> 已拦截</span>'+
+      '<span style="margin-left:auto">峰值 '+r.mx+'</span></div>'+ r.svg;
+}
+function rowsHTML(arr, unit){
+  return arr.map(function(x){
+    return '<div class="row"><span class="nm" title="'+x.n+'">'+x.n+'</span>'+
+      '<span class="tr"><span class="fl" style="--c1:'+x.c1+';--c2:'+x.c2+';width:'+Math.min(100,x.v)+'%"></span></span>'+
+      '<span class="vl">'+x.v+(unit?'<i>'+unit+'</i>':'')+'</span></div>';
+  }).join('');
+}
+function renderList(id, arr){
+  $(id).innerHTML = arr.map(function(x){
+    return '<div class="li" style="--c:'+x.c+'"><i class="tag"></i>'+
+      '<div style="min-width:0"><div class="tt">'+x.t+'</div><div class="ss">'+x.s+'</div></div>'+
+      '<div class="vv" style="font-size:12px">'+x.v+'</div></div>';
+  }).join('');
+}
+function renderBand(b){
+  $('band').innerHTML = b.items.map(function(x,i){
+    return '<div class="bn" style="--c:'+x.c+'"><div class="n num">'+x.n+'</div>'+
+      '<div class="l">'+x.u+'</div>'+
+      '<div class="s">'+(i===0?'↑ 实时':i===1?'↓ 实时':i===2?'⚠ 阈值 3%':'⚠ 阈值 2%')+'</div></div>';
+  }).join('');
+  $('capTxt').textContent = '容量占用 ' + b.cap + '%';
+  $('spark').innerHTML = sparkline(b.spark, 640, 78, C.cyan, 'sparkFill');
+}
+function renderLink(l){
+  const mx = Math.max.apply(null, l.map(x=>x.v));
+  $('linkRows').innerHTML = l.map(function(x){
+    const pc = x.p>1.5?C.red:x.p>0.8?C.amber:'inherit';
+    return '<div class="row" style="grid-template-columns:148px 1fr 106px">'+
+      '<span class="nm" title="'+x.n+'">'+x.n+'</span>'+
+      '<span class="tr"><span class="fl" style="--c1:'+x.c1+';--c2:'+x.c2+';width:'+(x.v/mx*100).toFixed(1)+'%"></span></span>'+
+      '<span class="vl" style="color:'+pc+';font-size:11px">'+x.p.toFixed(2)+'<i>%丢包</i></span></div>';
+  }).join('');
+}
+function renderTopo(t){
+  const nodes = t.nodes, map = {};
+  nodes.forEach(n=>map[n.id]=n);
+  const w = 880, h = 360;
+  let g = '';
+  t.links.forEach(function(L,i){
+    const A = map[L[0]], B = map[L[1]];
+    const x1 = A.x + A.w/2, y1 = A.y + A.h, x2 = B.x + B.w/2, y2 = B.y;
+    const mx = (x1+x2)/2;
+    const path = 'M '+x1+' '+y1+' C '+mx+' '+y1+', '+mx+' '+y2+', '+x2+' '+y2;
+    const color = (i%4===0)?C.amber:C.cyan;
+    g += '<path d="'+path+'" fill="none" stroke="rgba(64,158,255,.15)" stroke-width="1.4"/>'+
+         '<path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="1.4" class="flow"/>'+
+         '<circle r="2.4" fill="'+color+'"><animateMotion dur="'+(2.2+(i%5)*0.35)+'s" repeatCount="indefinite" path="'+path+'"/></circle>';
+  });
+  const pal = { fw:{f:'rgba(244,63,94,.14)',b:C.red,c:C.red},
+                core:{f:'rgba(34,211,238,.14)',b:C.cyan,c:C.cyan},
+                agg:{f:'rgba(59,130,246,.13)',b:C.blue,c:C.blue},
+                term:{f:'rgba(148,163,184,.10)',b:C.gray,c:'#cbd5e1'} };
+  nodes.forEach(function(n){
+    const p = pal[n.k], bc = (n.st===0)?C.amber:(n.st===2)?C.red:p.b;
+    g += '<g><rect x="'+n.x+'" y="'+n.y+'" width="'+n.w+'" height="'+n.h+'" rx="7" fill="'+p.f+'" stroke="'+bc+'" stroke-width="1.2" style="filter:drop-shadow(0 0 9px '+bc+'44)"/>'+
+      '<text x="'+(n.x+n.w/2)+'" y="'+(n.y+n.h/2)+'" text-anchor="middle" style="font-size:12px;font-weight:700;fill:#e8f2ff">'+n.t+'</text>'+
+      '<text x="'+(n.x+n.w/2)+'" y="'+(n.y+n.h/2+12)+'" text-anchor="middle" class="tk2">'+n.s+'</text>'+
+      ((n.st===0)?'<circle cx="'+(n.x+n.w-9)+'" cy="'+(n.y+9)+'" r="3.2" fill="'+C.amber+'"><animate attributeName="opacity" values="1;.2;1" dur="1.2s" repeatCount="indefinite"/></circle>':'')+
+      '</g>';
+  });
+  /* 节点实际分布到 x≈963 / y≈354，viewBox 必须盖住，否则右侧 AGG/DMZ 会被裁 */
+  $('topo').innerHTML = '<svg viewBox="0 0 '+Math.max(w, 1000)+' '+h+'" style="width:100%;height:100%">'+g+'</svg>';
+  const hEl = $('linkHealth');
+  hEl.textContent = t.health + '%';
+  hEl.style.color = t.health>98?C.green:t.health>95?C.amber:C.red;
+  $('topoDev').textContent = t.devices.toLocaleString() + ' 台设备';
+}
+function renderSla(s){
+  const mx = Math.max.apply(null, s.map(x=>x.v));
+  $('sla').innerHTML = s.map(function(x){
+    return '<div class="li" style="--c:'+(x.bad?C.red:x.c)+';grid-template-columns:1fr 96px 48px">'+
+      '<div style="min-width:0"><div class="tt">'+x.n+'</div>'+
+        '<div class="tr" style="height:5px;margin-top:5px"><span class="fl" style="--c1:'+x.c+';--c2:'+x.c+';width:'+(x.v/mx*100).toFixed(1)+'%"></span></div></div>'+
+      '<div class="ss" style="text-align:right">'+x.s+'</div>'+
+      '<div class="vv" style="color:'+(x.bad?C.red:x.c)+';font-size:12.5px">'+x.v+'%</div></div>';
+  }).join('');
+}
+function renderCap(c){
+  $('cap').innerHTML = c.map(function(x){
+    const col = x.v>80?C.red:x.v>65?C.amber:x.v>45?C.cyan:C.green;
+    return '<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px">'+
+      miniRing(x.v, col, 50)+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="display:flex;justify-content:space-between"><span style="color:var(--txt-2)">'+x.n+'</span>'+
+        '<b style="color:'+(x.v>80?C.red:'var(--txt)')+'">'+x.v+x.u+'</b></div>'+
+        '<div class="tr" style="height:5px;margin-top:5px"><span class="fl" style="--c1:'+x.c+';--c2:'+x.c+';width:'+x.v+'%"></span></div>'+
+      '</div></div>';
+  }).join('');
+}
+function renderAlerts(a){
+  const cnt = {P1:0,P2:0,P3:0,P4:0};
+  a.forEach(x=>{ if(cnt[x.lv]!==undefined) cnt[x.lv]++; });
+  $('critCnt').textContent = cnt.P1;
+  $('stream').innerHTML = a.map(function(x){
+    const s = SEV[x.lv] || SEV.P4;
+    return '<div class="sline" style="border-left:2px solid '+s.color+';padding-left:9px">'+
+      '<span class="tm">'+x.tm+'</span>'+
+      '<span class="lv" style="color:'+s.color+';border-color:'+s.color+'66;background:'+s.color+'1a">'+x.lv+' '+s.name+'</span>'+
+      '<span class="msg">'+x.msg+' <em style="color:#5d7a9c;font-style:normal;font-size:11px">· '+x.g+'</em></span>'+
+      '<span class="ip">'+x.ip+'</span></div>';
+  }).join('');
+  $('sevLegend').innerHTML = Object.keys(SEV).map(function(k){
+    const s = SEV[k];
+    return '<span class="sev-chip" style="--c:'+s.color+'"><i></i>'+k+' '+s.name+' <b>'+cnt[k]+'</b></span>';
+  }).join('') + '<span style="margin-left:auto;font-size:10.5px;color:#5d7a9c;letter-spacing:1px">'
+    + a.length + ' 条滚动窗口 · 全量口径见顶部</span>';
+}
+function renderSevMap(){
+  $('sevMap').innerHTML =
+    '<div class="sm-t">告警分级口径 · ITIL 业务影响 × 紧迫度</div>'+
+    '<table class="sm">' + Object.keys(SEV).map(function(k){
+      const s = SEV[k];
+      return '<tr><td style="color:'+s.color+'">'+k+' '+s.name+'</td>'+
+        '<td>'+s.rule+'<br><span style="color:#5d7a9c">Response：'+s.resp+' · 主责 '+s.owner+'</span></td>'+
+        '<td>'+s.zabbix+'<br><span style="color:#5d7a9c">'+s.act+'</span></td></tr>';
+    }).join('') + '</table>';
+}
+
+/* ==========================================================================
+ *  4. 轮询循环
+ * ======================================================================== */
+let paused = false;
+async function tick(force){
+  if (paused && !force) return;
+  const d = await ZabbixAdapter.fetch();
+  /* FortiAnalyzer 只覆盖安全相关字段，其余仍走上面那份快照 */
+  const faz = FazAdapter.cfg.on ? await FazAdapter.fetch() : null;
+  if (faz){
+    Object.assign(d, {
+      secScore : faz.secScore, secTrend : faz.secTrend,
+      secTop   : faz.secTop,   secRisk  : faz.secRisk
+    });
+    const k = d.kpi.slice();
+    k[3] = { k:k[3].k, v:faz.kpi.total.toLocaleString(), u:'次/' + FazAdapter.cfg.win + 'min',
+             c:C.purple, d:'拦截率 ' + faz.kpi.rate + '% · 源 ' + faz.kpi.srcCnt + ' 个' };
+    d.kpi = k;
+  }
+  renderKPI(d); renderSecScore(d.secScore); renderSecTrend(d.secTrend);
+  renderSecTop(d.secTop); renderList('secRisk', d.secRisk);
+  renderBand(d.band); renderTopo(d.topo); renderLink(d.link);
+  renderSla(d.sla); renderCap(d.cap); renderList('ticket', d.ticket);
+  renderAlerts(d.alerts);
+  if (MapLayer.points.length){ MapLayer.renderBuiltin(); MapLayer.sync(); }
+  MapLayer.renderAssetBar();
+  $('lastSync').textContent = fmtTime(ZabbixAdapter.lastSync);
+  const p1 = d.alerts.filter(x=>x.lv==='P1').length;
+  const err = ZabbixAdapter.error;
+  const fazErr = FazAdapter.cfg.on ? (FazAdapter.errors[0] || '') : '';
+  $('srcDot').className = 'dot ' + (err ? 'bad' : fazErr ? 'warn' : p1>1 ? 'bad' : p1 ? 'warn' : '');
+  $('srcDot').title = err || fazErr || '数据源正常';
+  let hostTxt = err ? '数据源异常' : (ZabbixAdapter.live ? 'Zabbix 实时' : '演示基线');
+  if (faz) hostTxt += ' · FortiAnalyzer 实时';
+  else if (fazErr) hostTxt += ' · FortiAnalyzer 降级';
+  $('srcHost').textContent = hostTxt;
+  if (err || fazErr) $('srcHost').title = [err, fazErr].filter(Boolean).join('｜');
+}
+/* ==========================================================================
+ *  视图模式：单页集成 / 分屏预览（多页）—— 可切换预览，便于现场拍板
+ * ======================================================================== */
+const VIEW_KEY = 'netcockpit.view', PAGE_KEY = 'netcockpit.page';
+let viewMode = localStorage.getItem(VIEW_KEY) || 'single';   // single | paged
+let viewPage = localStorage.getItem(PAGE_KEY) || 'net';      // net | sec | cap
+function applyView(){
+  document.body.dataset.view = viewMode;
+  document.body.dataset.page = viewPage;
+  const bv = document.getElementById('btnView');
+  if (bv){
+    bv.textContent = viewMode === 'paged' ? '▦ 分屏' : '▦ 单页';
+    bv.classList.toggle('on', viewMode === 'paged');
+  }
+  document.querySelectorAll('#pagebar .ptab').forEach(function(t){
+    t.classList.toggle('on', t.dataset.page === viewPage);
+  });
+}
+/* 切换视图/页面后强制重绘：被隐藏的面板此前可能以 0 宽绘制图表 */
+function rerender(){
+  const wasPaused = paused; paused = false;
+  tick(true).finally(function(){ paused = wasPaused; });
+}
+function setView(m){ viewMode = m; localStorage.setItem(VIEW_KEY, m); applyView(); rerender(); }
+function setPage(p){ viewPage = p; localStorage.setItem(PAGE_KEY, p); applyView(); rerender(); }
+document.getElementById('btnView').onclick = function(){
+  setView(viewMode === 'paged' ? 'single' : 'paged');
+};
+document.querySelectorAll('#pagebar .ptab').forEach(function(t){
+  t.onclick = function(){ setPage(t.dataset.page); };
+});
+applyView();
+
+function renderSecTop(t){
+  const mx = Math.max.apply(null, t.map(x=>x.v));
+  $('secTop').innerHTML = rowsHTML(t.map(x=>({n:x.n, v:+(x.v/mx*100).toFixed(0), c1:x.c1, c2:x.c2})), '%');
+}
+tick(true);
+setInterval(function(){ tick(); }, 8000);
+
+$('btnPause').onclick = function(e){
+  paused = !paused;
+  e.currentTarget.classList.toggle('on', paused);
+  e.currentTarget.textContent = paused ? '▶ 继续轮询' : '⏸ 暂停轮询';
+  document.body.classList.toggle('paused', paused);
+};
+
+/* ==========================================================================
+ *  5. 自定义：模块显隐 + 拖拽排序 + 本地持久化
+ * ======================================================================== */
+const KEY = 'netcockpit.layout.v1';
+let hidden = new Set(JSON.parse(localStorage.getItem(KEY+'.hidden') || '[]'));
+let order  = JSON.parse(localStorage.getItem(KEY+'.order') || '{}');
+function persist(){
+  localStorage.setItem(KEY+'.hidden', JSON.stringify(Array.from(hidden)));
+  localStorage.setItem(KEY+'.order', JSON.stringify(order));
+}
+function applyLayout(){
+  document.querySelectorAll('[data-mod]').forEach(function(p){
+    const id = p.dataset.mod;
+    p.style.display = hidden.has(id) ? 'none' : '';
+  });
+  ['colL','mid','colR'].forEach(function(cid){
+    const col = $(cid); if(!col) return;
+    Array.prototype.slice.call(col.children).forEach(function(el,i){
+      if (el.dataset.mod) { order[el.dataset.mod] = i; col.appendChild(el); }
+    });
+  });
+}
+function renderModList(){
+  const mods = Array.prototype.slice.call(document.querySelectorAll('[data-mod]')).map(function(p){
+    const t = p.querySelector('.t');
+    return {id:p.dataset.mod, name:p.dataset.name || (t ? t.textContent : p.id)};
+  });
+  $('modList').innerHTML = mods.map(function(m){
+    return '<div class="m '+(hidden.has(m.id)?'':'on')+'" data-id="'+m.id+'">'+
+      '<span class="box">'+(hidden.has(m.id)?'':'✓')+'</span>'+m.name+'</div>';
+  }).join('');
+  $('modList').querySelectorAll('.m').forEach(function(el){
+    el.onclick = function(){
+      const id = el.dataset.id;
+      if (hidden.has(id)) hidden.delete(id); else hidden.add(id);
+      el.classList.toggle('on', !hidden.has(id));
+      el.querySelector('.box').textContent = hidden.has(id) ? '' : '✓';
+      applyLayout(); persist();
+    };
+  });
+}
+$('btnCustom').onclick = function(e){
+  const d = $('drawer'); d.classList.toggle('show');
+  e.currentTarget.classList.toggle('on', d.classList.contains('show'));
+  document.body.classList.toggle('editing', d.classList.contains('show'));
+};
+$('btnDone').onclick = function(){ $('drawer').classList.remove('show');
+  document.body.classList.remove('editing'); $('btnCustom').classList.remove('on'); };
+$('btnReset').onclick = function(){ hidden.clear(); order = {}; persist(); applyLayout(); renderModList(); };
+
+/* HTML5 拖拽排序 */
+let dragEl = null;
+document.querySelectorAll('.panel[data-mod]').forEach(function(p){
+  p.draggable = true;
+  p.addEventListener('dragstart', function(e){
+    dragEl = p; p.classList.add('drag-h');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', p.dataset.mod);
+  });
+  p.addEventListener('dragend', function(){
+    p.classList.remove('drag-h'); dragEl = null;
+    document.querySelectorAll('.panel.dragover').forEach(function(x){x.classList.remove('dragover');});
+    persist();
+  });
+  p.addEventListener('dragover', function(e){ e.preventDefault(); if(p!==dragEl) p.classList.add('dragover'); });
+  p.addEventListener('dragleave', function(){ p.classList.remove('dragover'); });
+  p.addEventListener('drop', function(e){
+    e.preventDefault(); p.classList.remove('dragover');
+    if (!dragEl || dragEl===p) return;
+    const col = p.closest('.col, #mid');
+    col.insertBefore(dragEl, p);
+    applyLayout(); persist();
+  });
+});
+
+/* ---- 模块标题双击改名（仅编辑态生效） ---- */
+function applyTitles(){
+  let t={}; try{ t=JSON.parse(localStorage.getItem(KEY+'.titles')||'{}'); }catch(e){ t={}; }
+  document.querySelectorAll('.panel[data-mod]').forEach(function(p){
+    const el=p.querySelector('.t'); if(!el) return;
+    const ov=t[p.dataset.mod];
+    el.textContent = (ov!==undefined && ov!=='') ? ov : (el.dataset.orig||el.textContent);
+  });
+}
+document.querySelectorAll('.panel[data-mod]').forEach(function(p){
+  const el=p.querySelector('.t'); if(el && !el.dataset.orig) el.dataset.orig = el.textContent;
+  if(!el) return;
+  el.style.cursor = 'text';
+  el.addEventListener('dblclick', function(){
+    if(!document.body.classList.contains('editing')) return;
+    el.contentEditable = 'true'; el.focus();
+    const r=document.createRange(); r.selectNodeContents(el);
+    const s=getSelection(); s.removeAllRanges(); s.addRange(r);
+  });
+  el.addEventListener('blur', function(){
+    if(el.contentEditable!=='true') return;
+    el.contentEditable='false';
+    const v=el.textContent.trim();
+    let t={}; try{ t=JSON.parse(localStorage.getItem(KEY+'.titles')||'{}'); }catch(e){}
+    if(!v) el.textContent = el.dataset.orig || el.textContent;
+    else   t[p.dataset.mod] = v;
+    try{ localStorage.setItem(KEY+'.titles', JSON.stringify(t)); }catch(e){}
+    renderModList();
+  });
+  el.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } });
+});
+/* 重置时一并清除标题覆盖 */
+const _reset0 = $('btnReset').onclick;
+$('btnReset').onclick = function(){ try{ localStorage.removeItem(KEY+'.titles'); }catch(e){} if(_reset0) _reset0(); applyTitles(); };
+
+/* ==========================================================================
+ *  6. 地图与数据（抽屉「地图与数据」页签）
+ * ======================================================================== */
+function drawGeo(){
+  const b = MapLayer.base;
+  $('geoBaseMsg').innerHTML = b
+    ? '<span style="color:var(--green)">✔ 已加载自定义底图</span> · 经纬范围 '
+      + (+b.latN).toFixed(4)+' / '+(+b.latS).toFixed(4)+' / '+(+b.lngW).toFixed(4)+' / '+(+b.lngE).toFixed(4)
+    + '<br><span style="color:#f59e0b">底图由你自备并自行负责其合规性；本页不内置、不下载任何地图瓦片。</span>'
+    : '当前为纯示意图，不加载任何在线地图。底图需你自己提供一份已合规审查的图源（例如自然资源标准底图或单位内部地图）。'
+      + '<br><span style="color:#f59e0b">Google 离线地图未接入 —— 境外地图瓦片属未授权地图源，'
+      + '互联网地图服务须使用具备测绘资质的图源（腾讯 / 高德 / 百度 / 天地图）。</span>';
+  $('geoLatN').value = b ? b.latN : '';
+  $('geoLatS').value = b ? b.latS : '';
+  $('geoLngW').value = b ? b.lngW : '';
+  $('geoLngE').value = b ? b.lngE : '';
+  $('geoJson').value = JSON.stringify(MapLayer.points, null, 1);
+  const custom = !!localStorage.getItem(GEO_KEY + '.points');
+  $('geoMsg').innerHTML = custom
+    ? '当前为<b style="color:var(--amber)">自定义点位</b>，已保存在本机浏览器。刷新后依然生效。'
+    : '尚未导入自定义点位，当前使用内置点位。';
+}
+$('geoBasePick').onclick  = function(){ $('geoBaseFile').click(); };
+$('geoBaseClear').onclick = function(){ MapLayer.saveBase(null); drawGeo(); };
+$('geoBaseFile').onchange = function(e){
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = function(){
+    const img = new Image();
+    img.onload = function(){
+      /* 底图整体转 JPEG 存一份，dataURL 体积能压到原图的三分之一 */
+      try{
+        const cv = document.createElement('canvas');
+        cv.width = Math.min(1600, img.naturalWidth);
+        cv.height = Math.round(img.naturalHeight * cv.width / img.naturalWidth);
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        window.MapLayer._pending = { src: cv.toDataURL('image/jpeg', 0.82) };
+      }catch(err){ window.MapLayer._pending = { src: rd.result }; }
+      $('geoBaseMsg').innerHTML = '已读取「'+esc(f.name)+'」（' + Math.round(f.size/1024) + ' KB）。'
+        + '请填写它对应的经纬范围，点「应用底图」生效。';
+    };
+    img.onerror = function(){ $('geoBaseMsg').innerHTML = '<span style="color:var(--red)">图片解析失败</span>'; };
+    img.src = rd.result;
+  };
+  rd.readAsDataURL(f);
+  e.target.value = '';
+};
+$('geoBaseApply').onclick = function(){
+  const pd = MapLayer._pending;
+  if (!pd || !pd.src){ $('geoBaseMsg').innerHTML = '<span style="color:var(--red)">请先选择底图图片</span>'; return; }
+  const num = function(id){ const v = ($(id).value||'').trim(); return v === '' ? NaN : parseFloat(v); };
+  const b = { src: pd.src, latN: num('geoLatN'), latS: num('geoLatS'),
+              lngW: num('geoLngW'), lngE: num('geoLngE') };
+  if ([b.latN,b.latS,b.lngW,b.lngE].some(isNaN)){
+    $('geoBaseMsg').innerHTML = '<span style="color:var(--red)">四个角点经纬度都要填，且北端纬度须大于南端、东端经度须大于西端</span>';
+    return;
+  }
+  if (b.latN <= b.latS || b.lngE <= b.lngW){
+    $('geoBaseMsg').innerHTML = '<span style="color:var(--red)">纬度方向填反了：北端应大于南端</span>';
+    return;
+  }
+  MapLayer.saveBase(b);
+  MapLayer._pending = null;
+  drawGeo();
+  $('geoBaseMsg').innerHTML += '<br><span style="color:var(--green)">✔ 底图已应用，点位按此底图对齐</span>';
+};
+$('geoBaseTest').onclick = function(){
+  const b = MapLayer.base;
+  if (!b){ $('geoBaseMsg').innerHTML = '<span style="color:var(--red)">还没有底图</span>'; return; }
+  const out = MapLayer.points.filter(p =>
+    !(p.lat <= b.latN && p.lat >= b.latS && p.lng >= b.lngW && p.lng <= b.lngE));
+  $('geoBaseMsg').innerHTML = out.length
+    ? '<span style="color:var(--amber)">⚠ 有 '+out.length+' 处点位落在底图范围外</span>：'
+      + out.map(p=>p.name).join('、')
+    : '<span style="color:var(--green)">✔ 全部 '+MapLayer.points.length+' 处点位都落在底图范围内</span>';
+};
+$('geoApply').onclick = function(){
+  const txt = $('geoJson').value.trim();
+  if (!txt){ return; }
+  try{
+    let arr;
+    if (txt.charAt(0) === '[') arr = JSON.parse(txt);
+    else if (txt.indexOf('lat') > -1) arr = MapLayer.csv2points(txt);
+    else throw new Error('无法识别的格式，请使用 JSON 数组或含 lat 列的 CSV');
+    if (!Array.isArray(arr) || !arr.length) throw new Error('解析结果为空');
+    MapLayer.setPoints(arr);
+    MapLayer.hidePop(); tick(true);
+    $('geoMsg').innerHTML = '<span style="color:var(--green)">✔ 已应用 '+arr.length+' 处点位</span>';
+  }catch(e){
+    $('geoMsg').innerHTML = '<span style="color:var(--red)">✘ 解析失败：'+e.message+'</span>';
+  }
+};
+$('geoDefault').onclick = function(){
+  try{ localStorage.removeItem(GEO_KEY + '.points'); }catch(e){}
+  MapLayer.points = SITES_DEF.map(s=>Object.assign({status:1, health:97}, s));
+  MapLayer.save = function(){};  // 内置点位不再回写
+  MapLayer.renderLegend(); MapLayer.renderBuiltin(); MapLayer.renderAssetBar();
+  tick(true); drawGeo();
+  $('geoMsg').innerHTML = '已恢复内置点位。';
+};
+$('geoExport').onclick = function(){
+  const t = 'id,name,lat,lng,type,status,net,srv,sto,owner\n'
+    + MapLayer.points.map(p=>[p.id, p.name, p.lat, p.lng, p.type, p.status,
+        p.assets.net||0, p.assets.srv||0, p.assets.sto||0, p.owner].join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([t], {type:'text/csv;charset=utf-8'}));
+  a.download = 'netcockpit-points.csv';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+};
+$('geoImport').onclick = function(){ $('geoFile').click(); };
+$('geoFile').onchange = function(e){
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = function(){
+    $('geoJson').value = rd.result;
+    $('geoMsg').innerHTML = '已读取「'+f.name+'」，点击「应用点位」生效。';
+  };
+  rd.readAsText(f, 'utf-8');
+  e.target.value = '';
+};
+
+/* ==========================================================================
+ *  6b. 数据接入：实时 / 演示 切换、连通性测试
+ * ======================================================================== */
+const ZKEY = 'netcockpit.zbx.';
+function zbxSync(){
+  $('zbxEp').value     = ZabbixAdapter.endpoint;
+  $('zbxToken').value  = ZabbixAdapter.token;
+  $('zbxUser').value   = ZabbixAdapter.user;
+  $('zbxSid').value    = ZabbixAdapter.sid || '';
+  zbxAuthSync();
+  $('zbxLive').classList.toggle('on', ZabbixAdapter.live);
+  $('zbxDemo').classList.toggle('on', !ZabbixAdapter.live);
+  $('zbxMode').innerHTML = ZabbixAdapter.live
+    ? '当前为<span style="color:var(--cyan)">实时模式</span>：取到的字段覆盖演示基线，取不到的沿用基线。'
+    : '当前为<span style="color:var(--txt-2)">演示基线</span>：不访问任何外部接口，断网可演示。';
+  $('zbxMsg').textContent = ZabbixAdapter.error ? ('上次异常：' + ZabbixAdapter.error) : '—';
+}
+$('zbxLive').onclick = function(){
+  ZabbixAdapter.live = true;  localStorage.setItem(ZKEY+'live','1'); zbxSync(); tick(true);
+};
+$('zbxDemo').onclick = function(){
+  ZabbixAdapter.live = false; localStorage.setItem(ZKEY+'live','0');
+  ZabbixAdapter.error = ''; zbxSync(); tick(true);
+};
+/* --- 认证方式切换：只显示当前模式对应的输入项 --- */
+function zbxAuthSync(){
+  const m = ZabbixAdapter.authMode;
+  $('zbxAuthToken').classList.toggle('on', m === 'token');
+  $('zbxAuthPwd').classList.toggle('on', m === 'pwd');
+  $('zbxAuthSid').classList.toggle('on', m === 'sid');
+  $('zbxFldToken').hidden = (m !== 'token');
+  $('zbxFldPwd').hidden   = (m !== 'pwd');
+  $('zbxFldSid').hidden   = (m !== 'sid');
+  $('zbxLogout').style.display = (m === 'pwd' && ZabbixAdapter.sid) ? '' : 'none';
+}
+function zbxAuthSet(m){
+  ZabbixAdapter.authMode = m;
+  localStorage.setItem(ZKEY+'mode', m);
+  if (m === 'sid'){                       // 手填模式直接采用输入框里的值，不再走登录
+    ZabbixAdapter.sid = ($('zbxSid').value || '').trim();
+    ZabbixAdapter.sidAt = Date.now();
+    try{ localStorage.setItem(ZKEY+'sid', ZabbixAdapter.sid); }catch(e){}
+  }
+  if (m !== 'pwd') ZabbixAdapter.sid = '';
+  zbxAuthSync();
+  $('zbxMsg').textContent = '—';
+}
+$('zbxAuthToken').onclick = function(){ zbxAuthSet('token'); };
+$('zbxAuthPwd').onclick   = function(){ zbxAuthSet('pwd'); };
+$('zbxAuthSid').onclick   = function(){ zbxAuthSet('sid'); };
+$('zbxLogout').onclick = function(){
+  ZabbixAdapter.logout();
+  ZabbixAdapter.error = '';
+  zbxAuthSync(); zbxSync();
+  $('zbxMsg').innerHTML = '<span style="color:var(--amber,#f59e0b)">已退出，sessionid 已清除</span>，下次轮询会用账号重新登录。';
+};
+
+/* 把抽屉里的凭证读入适配器并落盘 */
+function zbxRead(){
+  ZabbixAdapter.endpoint = ($('zbxEp').value || '').trim();
+  ZabbixAdapter.token    = ($('zbxToken').value || '').trim();
+  ZabbixAdapter.user     = ($('zbxUser').value || '').trim();
+  ZabbixAdapter.pass     = $('zbxPass').value || '';
+  if ($('zbxSid') && ZabbixAdapter.authMode === 'sid')
+    ZabbixAdapter.sid = ($('zbxSid').value || '').trim();
+  try{
+    localStorage.setItem(ZKEY+'ep', ZabbixAdapter.endpoint);
+    localStorage.setItem(ZKEY+'token', ZabbixAdapter.token);
+    localStorage.setItem(ZKEY+'user', ZabbixAdapter.user);
+    localStorage.setItem(ZKEY+'pass', ZabbixAdapter.pass);
+  }catch(e){}
+}
+$('zbxSave').onclick = function(){
+  zbxRead();
+  if (ZabbixAdapter.authMode === 'pwd' && ZabbixAdapter.user && ZabbixAdapter.pass){
+    try{ localStorage.removeItem(ZKEY+'sid'); }catch(e){}
+    ZabbixAdapter.sid = ''; ZabbixAdapter.sidAt = 0;
+  }
+  $('zbxMsg').innerHTML = '<span style="color:var(--green)">已保存</span>，下次轮询生效。点「测试连接」立即验证。';
+  tick(true);
+};
+$('zbxTest').onclick = async function(){
+  zbxRead();
+  const A = ZabbixAdapter;
+  const want = A.authMode;
+  if (!A.endpoint){ $('zbxMsg').innerHTML = '<span style="color:var(--red)">请先填写 API 地址</span>'; return; }
+  if (want === 'token' && !A.token){ $('zbxMsg').innerHTML = '<span style="color:var(--red)">请先填 Token</span>'; return; }
+  if (want === 'pwd' && (!A.user || !A.pass)){ $('zbxMsg').innerHTML = '<span style="color:var(--red)">请先填写账号与密码</span>'; return; }
+  if (want === 'sid' && !A.sid){ $('zbxMsg').innerHTML = '<span style="color:var(--red)">请先粘贴 zbx_sessionid</span>'; return; }
+  $('zbxMsg').textContent = '正在连接…';
+  try{
+    /* 密码模式先验证登录，登录失败的错误原因对用户最有价值，直接区分出来 */
+    if (want === 'pwd') await A.login();
+    const r = await A.call('hostgroup.get', { output:['groupid','name'], limit:1 });
+    const n = Array.isArray(r) ? r.length : 0;
+    $('zbxMsg').innerHTML = '<span style="color:var(--green)">✓ 连接成功</span>'
+      + (want === 'pwd' ? '（账号密码已换成 sessionid，' + A.sid.slice(0,8) + '…）' : '')
+      + ' · hostgroup.get 返回 ' + n + ' 条分组。' + (n === 0 ? '返回 0 属正常：凭证有效但当前主机分组无匹配项。' : '');
+    zbxAuthSync();
+  }catch(e){
+    const msg = e.message || String(e);
+    let tip = '';
+    if (/Login failed|Incorrect user name|Invalid params|Not authorised|session/i.test(msg))
+      tip = '账号或密码不对，或该账号没有 API 访问权限。<br>';
+    else if (/does not exist|not found|unsupported|Invalid method|method/i.test(msg))
+      tip = '该 Zabbix 版本可能已移除 <code>user.login</code>（新版本推荐用 API Token）。<br>'
+          + '改用「手填 Session ID」：Web 控制台登录后 F12 → Console 执行 <code>document.cookie</code> 复制 <code>zbx_sessionid</code>。<br>';
+    else if (/CORS|Failed to fetch|NetworkError|Load failed/i.test(msg))
+      tip = '浏览器 CORS 拦截或地址不可达。<br>';
+    else tip = '常见原因：地址写错 / 凭证过期 / 服务端未开启 JSON-RPC。<br>';
+    $('zbxMsg').innerHTML = '<span style="color:var(--red)">✕ ' + esc(msg) + '</span><br>' + tip
+      + 'Zabbix 默认允许跨域，但反代或 Nginx 需补 <code>Access-Control-Allow-Origin</code>。';
+    if (want === 'pwd' && /Login failed/i.test(msg)){
+      ZabbixAdapter.sid = ''; try{ localStorage.removeItem(ZKEY+'sid'); }catch(e){}
+    }
+  }
+};
+
+/* ==========================================================================
+ *  6c. FortiAnalyzer 接入：字段绑定、测试查询
+ * ======================================================================== */
+function fazSync(){
+  const c = FazAdapter.cfg;
+  $('fazOn').classList.toggle('on', !!c.on);
+  $('fazOff').classList.toggle('on', !c.on);
+  $('fazAuthRpc').classList.toggle('on', c.mode === 'jsonrpc');
+  $('fazAuthRest').classList.toggle('on', c.mode === 'rest');
+  $('fazEp').value     = c.ep;
+  $('fazUser').value   = c.user;
+  $('fazMethod').value = c.method;
+  $('fazToken').value  = c.token;
+  $('fazWin').value    = c.win;
+  $('fazLimit').value  = c.limit;
+  $('fazExtra').value  = c.extra;
+  $('fazFTime').value  = c.fTime;
+  $('fazFSrc').value   = c.fSrc;
+  $('fazFAttack').value= c.fAttack;
+  $('fazFAction').value= c.fAction;
+  $('fazFSvc').value   = c.fSvc;
+  $('fazFVdom').value  = c.fVdom;
+  $('fazFldRpc').hidden  = (c.mode !== 'jsonrpc');
+  $('fazFldRest').hidden = (c.mode !== 'rest');
+}
+function fazRead(){
+  const c = FazAdapter.cfg;
+  c.ep     = ($('fazEp').value     || '').trim();
+  c.user   = ($('fazUser').value   || '').trim();
+  c.method = ($('fazMethod').value || 'log fetch').trim();
+  c.token  = ($('fazToken').value  || '').trim();
+  c.win    = +$('fazWin').value    || 60;
+  c.limit  = +$('fazLimit').value  || 2000;
+  c.extra  = ($('fazExtra').value  || '').trim();
+  c.fTime  = ($('fazFTime').value  || '').trim() || FAZ_DEF.fTime;
+  c.fSrc   = ($('fazFSrc').value   || '').trim() || FAZ_DEF.fSrc;
+  c.fAttack= ($('fazFAttack').value|| '').trim() || FAZ_DEF.fAttack;
+  c.fAction= ($('fazFAction').value|| '').trim() || FAZ_DEF.fAction;
+  c.fSvc   = ($('fazFSvc').value   || '').trim() || FAZ_DEF.fSvc;
+  c.fVdom  = ($('fazFVdom').value  || '').trim() || FAZ_DEF.fVdom;
+  FazAdapter.save();
+}
+$('fazOn').onclick  = function(){ fazRead(); FazAdapter.cfg.on = true;  FazAdapter.save(); fazSync(); tick(true); };
+$('fazOff').onclick = function(){ FazAdapter.cfg.on = false; FazAdapter.save(); fazSync(); tick(true); };
+$('fazAuthRpc').onclick = function(){ FazAdapter.cfg.mode = 'jsonrpc'; FazAdapter.save(); fazSync(); };
+$('fazAuthRest').onclick= function(){ FazAdapter.cfg.mode = 'rest';    FazAdapter.save(); fazSync(); };
+$('fazFields').onclick = function(){
+  const b = $('fazFldMap'); b.hidden = !b.hidden; };
+$('fazSave').onclick = function(){
+  fazRead();
+  $('fazMsg').innerHTML = '<span style="color:var(--green)">已保存</span>'
+    + (FazAdapter.cfg.on ? '。下次轮询生效。' : '（当前未启用，点「启用 FortiAnalyzer」打开）。');
+};
+$('fazTest').onclick = async function(){
+  fazRead();
+  const c = FazAdapter.cfg;
+  if (!c.ep){ $('fazMsg').innerHTML = '<span style="color:var(--red)">请先填接口地址</span>'; return; }
+  if (c.mode === 'jsonrpc' && (!c.user || !$('fazPass').value)){
+    $('fazMsg').innerHTML = '<span style="color:var(--red)">REST 之外的模式需要账号密码</span>'; return;
+  }
+  if (c.mode === 'rest' && !c.token){ $('fazMsg').innerHTML = '<span style="color:var(--red)">请先填 Token</span>'; return; }
+  FazAdapter._sid = null;
+  $('fazMsg').textContent = '正在查询…';
+  const s = await FazAdapter.fetch();
+  if (s){
+    const k = s.kpi;
+    $('fazMsg').innerHTML = '<span style="color:var(--green)">✔ 查询成功</span> · '
+      + k.total.toLocaleString() + ' 条日志 · 拦截率 ' + k.rate + '% · 源 ' + k.srcCnt + ' 个'
+      + (k.noTime ? ' · <span style="color:#f59e0b">' + k.noTime + ' 条无法解析时间，未计入趋势</span>' : '')
+      + '<br><span style="color:var(--txt-2)">样例记录：<code>' + esc(FazAdapter.sample || '—') + '</code></span>';
+  }else{
+    const e = (FazAdapter.errors[0] || '未知错误');
+    let tip = '若接口报 CORS 或不可达：给 Nginx 反代补 <code>Access-Control-Allow-Origin</code>。'
+            + '若报字段/方法名不对，把下面的原始返回贴给我，我按实际结构改解析。';
+    $('fazMsg').innerHTML = '<span style="color:var(--red)">✕ ' + esc(e) + '</span><br>' + tip
+      + '<br><span style="color:var(--txt-2)">原始返回：<code>' + esc(FazAdapter.lastRaw || '—') + '</code></span>';
+  }
+};
+
+/* 反向代理配置：点开即可复制，避免跨域 + 避免 Token 落在页面里 */
+const ZBX_NGINX = [
+  'location /zabbix-api/ {',
+  '    proxy_pass       http://10.252.28.99/api_jsonrpc.php/;',
+  '    proxy_set_header Host              $host;',
+  '    proxy_set_header X-Real-IP         $remote_addr;',
+  '    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;',
+  '    proxy_read_timeout 60s;',
+  '',
+  '    # 允许驾驶舱所在页面来源，改为你大屏的实际域名',
+  '    add_header Access-Control-Allow-Origin  "https://screen.your.com" always;',
+  '    add_header Access-Control-Allow-Headers "Content-Type,Authorization" always;',
+  '    add_header Access-Control-Allow-Methods "POST,GET,OPTIONS" always;',
+  '',
+  '    # 预检请求直接放行，不打后端',
+  '    if ($request_method = OPTIONS) { return 204; }',
+  '',
+  '    # 生产用法：Token 由服务端注入，前端不再自己保存',
+  '    # proxy_set_header Authorization "Bearer $zabbix_token";',
+  '    # auth_request / auth_jwt 之类的鉴权模块自行接入',
+  '}',
+  '',
+  '# 上面的 $zabbix_token 可在 http 块用 lua 或 auth 模块注入：',
+  '#   set $zabbix_token "";      # 运行时由鉴权逻辑填充'
+].join('\n');
+
+$('zbxConf').onclick = function(){
+  const box = $('zbxConfBox');
+  if (box.hidden){ box.textContent = ZBX_NGINX; box.hidden = false; this.textContent = '收起配置'; }
+  else { box.hidden = true; this.textContent = '显示配置'; }
+};
+$('zbxConfCopy').onclick = function(){
+  const box = $('zbxConfBox');
+  if (box.hidden){ box.textContent = ZBX_NGINX; box.hidden = false; $('zbxConf').textContent = '收起配置'; }
+  const txt = box.textContent;
+  const done = function(){
+    $('zbxMsg').innerHTML = '<span style="color:var(--green)">✓ 已复制</span> · 放到 Nginx 的 server 块里 reload 即可。';
+  };
+  const fail = function(){
+    $('zbxMsg').innerHTML = '浏览器阻止了自动复制，已展开配置，请手动全选复制。<br><span style="color:#f59e0b">' + esc(txt) + '</span>';
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done, function(){ legacyCopy(txt) ? done() : fail(); });
+  } else if (legacyCopy(txt)){ done(); } else { fail(); }
+};
+/* file:// 或旧浏览器下 clipboard API 不可用时退回 execCommand */
+function legacyCopy(txt){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = txt;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  }catch(e){ return false; }
+}
+
+zbxSync();
+fazSync();
+
+/* ==========================================================================
+ *  6c. 指标映射：容量水位逐行接管
+ *      面板上每一行 = 一条通道；填了 key 就由 Zabbix 真实值接管，留空沿用演示基线
+ * ======================================================================== */
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(ch){
+    return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[ch];
+  });
+}
+function chList(){
+  const chs = ZabbixAdapter.channels();
+  $('chList').innerHTML = chs.map(function(c, i){
+    return '<div class="ch">'+
+      '<div class="h">'+
+        '<input class="k-lb" value="'+esc(c.label)+'" placeholder="面板行名称" />'+
+        '<select class="k-agg">'+['avg','sum','max','min','last'].map(function(a){
+          return '<option value="'+a+'"'+(c.agg===a?' selected':'')+'>'+a+'</option>';
+        }).join('')+'</select>'+
+        '<input class="k-scale" type="number" step="any" value="'+(c.scale == null ? 1 : c.scale)+'" title="换算系数" />'+
+        '<div class="rm" data-i="'+i+'" title="删除该行">✕</div>'+
+      '</div>'+
+      '<input class="k-key" value="'+esc(c.key)+'" placeholder="Zabbix item key 子串 · 留空沿用演示基线" />'+
+      '<input class="k-unit" value="'+esc(c.unit)+'" placeholder="单位，如 %" />'+
+    '</div>';
+  }).join('') || '<div class="hint">暂无映射行，点「+ 新增一行」添加。</div>';
+}
+/* 把界面上的编辑结果读回数组 */
+function chRead(){
+  const chs = ZabbixAdapter.channels();
+  Array.prototype.forEach.call($('chList').querySelectorAll('.ch'), function(row, i){
+    const c = chs[i]; if (!c) return;
+    c.label = row.querySelector('.k-lb').value.trim() || c.label;
+    c.key   = row.querySelector('.k-key').value.trim();
+    c.agg   = row.querySelector('.k-agg').value;
+    c.unit  = row.querySelector('.k-unit').value.trim();
+    const s = parseFloat(row.querySelector('.k-scale').value);
+    c.scale = isFinite(s) ? s : 1;
+  });
+  return chs;
+}
+$('chAdd').onclick = function(){
+  const chs = chRead();
+  chs.push({ slot:'cap', idx: chs.length, label:'新增指标', key:'', agg:'avg', unit:'%', scale:1 });
+  ZabbixAdapter.saveChannels(chs); chList();
+  $('chMsg').innerHTML = '<span style="color:var(--cyan)">已添加一行</span>，填好 item key 后点「保存并生效」。';
+};
+$('chSave').onclick = function(){
+  ZabbixAdapter.saveChannels(chRead());
+  $('chMsg').innerHTML = '<span style="color:var(--green)">✓ 映射已保存</span>，正在按新映射重新拉取…';
+  tick(true);
+};
+$('chDefault').onclick = function(){
+  ZabbixAdapter.saveChannels(CHANNEL_DEFAULT.map(function(x){ return Object.assign({}, x); }));
+  chList();
+  $('chMsg').innerHTML = '<span style="color:var(--green)">已恢复默认映射</span>——默认 key 是通用模板写法，仍需按你们模板实际情况增删。';
+};
+$('chExport').onclick = function(){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(ZabbixAdapter.channels(), null, 1)],
+                                        { type:'application/json' }));
+  a.download = 'netcockpit-channels.json';
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+};
+/* 删除行事件委托；.rm 的 data-i 在 chList() 里按当前下标重排 */
+$('chList').onclick = function(e){
+  if (!e.target || !e.target.classList || !e.target.classList.contains('rm')) return;
+  const i = parseInt(e.target.getAttribute('data-i'), 10) || 0;
+  const chs = chRead();
+  if (!chs[i]) return;
+  chs.splice(i, 1);
+  chs.forEach(function(c, k){ c.idx = k; });   // 重排下标，避免接管错位
+  ZabbixAdapter.saveChannels(chs); chList();
+  $('chMsg').innerHTML = '<span style="color:var(--cyan)">已删除第 '+(i+1)+' 行</span>，点「保存并生效」即可生效。';
+};
+chList();
+
+/* 抽屉页签切换 */
+document.querySelectorAll('#drawer .tabs .t').forEach(function(el){
+  el.onclick = function(){
+    document.querySelectorAll('#drawer .tabs .t').forEach(function(x){ x.classList.remove('on'); });
+    document.querySelectorAll('#drawer .tp').forEach(function(x){ x.classList.remove('on'); });
+    el.classList.add('on');
+    const tp = $('tp' + el.getAttribute('data-tp').replace(/^./, m=>m.toUpperCase()));
+    if (tp) tp.classList.add('on');
+  };
+});
+
+/* ==========================================================================
+ *  7. 二次开发接口（全局挂载，供外部脚本 / 控制台调用）
+ *     window.Netcockpit.setPoints(...) 注入点位；其它方法见下方注释
+ * ======================================================================== */
+window.Netcockpit = {
+  version : '1.2.0',
+  map     : MapLayer,
+  asset   : ASSET,
+  /** 注入点位数组，自动持久化 */
+  setPoints(arr){ MapLayer.setPoints(arr); tick(true); return this; },
+  /** 读取当前点位 */
+  getPoints(){ return MapLayer.points.slice(); },
+  /** 粘贴 CSV 文本 → 点位数组，便于外部系统拼接后调用 */
+  csv(txt){ return MapLayer.csv2points(txt); },
+  /** 离线底图：传入 {src,latN,latS,lngW,lngE} 或 null 清除 */
+  basemap(b){ MapLayer.saveBase(b); drawGeo(); return this; },
+  /** 定位到指定点位 id */
+  focus(id){
+    const p = MapLayer.points.find(x=>x.id===id);
+    if (!p) return this;
+    MapLayer.pop(p, null);
+    return this;
+  },
+  /** 视野适配到全部点位（离线画布始终完整可见，无需缩放） */
+  fitAll(){ return this; },
+  /** 立即刷新一次数据 */
+  refresh(){ tick(true); return this; },
+  /** 指标映射：读取 / 覆盖（数组元素 {label,key,agg,unit,scale,idx}，key 留空 = 该行沿用演示基线） */
+  channels(){ return ZabbixAdapter.channels(); },
+  setChannels(a){ ZabbixAdapter.saveChannels(a); chList(); tick(true); return this; }
+};
+
+MapLayer.boot();
+renderModList(); applyLayout(); applyTitles(); renderSevMap(); drawGeo(); applyTheme(); bindTheme();
+tick(true);
+
+/* 调试/二次开发入口：
+   ?drawer=geo  → 打开「地图与数据」页签
+   ?drawer=zbx  → 打开「数据接入」页签
+   ?zbx=1|0     → 启动时强制 实时 / 演示 模式（优先级高于本地保存值） */
+(function(){
+  const q = new URLSearchParams(location.search);
+  const d = q.get('drawer'), z = q.get('zbx');
+  if (z !== null){
+    ZabbixAdapter.live = z === '1' || z === 'live';
+    localStorage.setItem(ZKEY+'live', ZabbixAdapter.live ? '1' : '0');
+  }
+  if (!d) return;
+  $('drawer').classList.add('show');
+  document.body.classList.add('editing');
+  const t = document.querySelector('#drawer .tabs .t[data-tp="' + d + '"]');
+  if (t) t.click();
+})();
+</script>
+</body>
+</html>
