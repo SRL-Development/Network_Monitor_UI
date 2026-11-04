@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>网络与网络安全态势驾驶舱 · Network Security Cockpit</title>
+<title>区域 IT 总部网络运营驾驶舱 · Regional IT Command Center</title>
 <style>
 /* ============================================================
    设计基准 1920 x 1080，外层等比缩放适配任意分辨率
@@ -68,7 +68,7 @@ body{
 }
 
 /* ---------------- 顶部 ---------------- */
-#top{height:104px;display:flex;flex-direction:column;padding:0 26px}
+#top{height:164px;flex:0 0 164px;display:flex;flex-direction:column;padding:0 26px}
 .brand{display:flex;align-items:center;gap:16px;padding-top:12px}
 .brand .logo{
   width:40px;height:40px;border-radius:10px;flex:0 0 40px;
@@ -102,6 +102,10 @@ body{
 }
 .btn:hover{background:rgba(34,211,238,.16);border-color:var(--cyan);color:#fff}
 .btn.on{background:rgba(34,211,238,.2);border-color:var(--cyan);color:#fff;box-shadow:var(--glow)}
+.btn:focus-visible,.ptab:focus-visible,.chipbtn:focus-visible,.sw:focus-visible,
+.tabs .t:focus-visible,.rm:focus-visible,.m:focus-visible,.chip:focus-visible{
+  outline:2px solid var(--cyan);outline-offset:2px
+}
 
 .confbox{
   margin-top:8px;padding:10px 12px;border-radius:6px;
@@ -114,7 +118,8 @@ body{
 .confbox::-webkit-scrollbar{width:6px;height:6px}
 .confbox::-webkit-scrollbar-thumb{background:rgba(34,211,238,.3);border-radius:3px}
 
-.kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:10px;flex:0 0 auto;min-height:0}
+.kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:10px;
+  height:var(--kpi-h);flex:0 0 var(--kpi-h);min-height:0}
 .kpi{
   background:linear-gradient(180deg,rgba(16,38,68,.9),rgba(8,19,36,.75));
   border:1px solid var(--line);border-radius:10px;padding:8px 14px;
@@ -143,13 +148,26 @@ body[data-view="paged"] #pagebar{display:flex}
 .ptab:hover{color:var(--txt);border-color:var(--line-2)}
 .ptab.on{color:#06121f;background:var(--cyan);border-color:var(--cyan);box-shadow:var(--glow)}
 .pbar-hint{font-size:11px;color:var(--txt-3);margin-left:auto}
+#execSummary{display:none;margin:6px 14px 8px;padding:10px 14px;border:1px solid var(--line-2);border-radius:12px;
+  background:linear-gradient(90deg,rgba(34,211,238,.11),rgba(11,26,48,.76));grid-template-columns:220px 1fr repeat(3,170px);gap:12px;align-items:center}
+body[data-view="paged"][data-page="exec"] #execSummary{display:grid}
+.exec-state{display:flex;align-items:center;gap:10px}
+.exec-state i{width:12px;height:12px;border-radius:50%;background:var(--green);box-shadow:0 0 16px currentColor;color:var(--green)}
+.exec-state b{font-size:22px;display:block}.exec-state span,.exec-decision span{font-size:10.5px;color:var(--txt-3)}
+.exec-decision b{font-size:14px;color:var(--txt);display:block;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exec-k{border-left:1px solid var(--line);padding-left:12px}.exec-k span{font-size:10px;color:var(--txt-3);display:block}
+.exec-k b{font-size:20px;color:var(--cyan)}
 /* 分屏：列包裹层打平，面板直接参与网格重排 */
 body[data-view="paged"] #body{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(500px,1fr));
   grid-auto-rows:minmax(230px,1fr);align-content:stretch;overflow:auto;padding:8px var(--cpad)}
 body[data-view="paged"] #colL,
 body[data-view="paged"] #mid,
 body[data-view="paged"] #colR{display:contents}
+body[data-view="paged"][data-page="exec"] #body,
+body[data-view="paged"][data-page="net"] #body{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
+body[data-view="paged"][data-page="sec"] #body{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
+body[data-view="paged"][data-page="exec"] .panel:not([data-page~="exec"]),
 body[data-view="paged"][data-page="sec"] .panel:not([data-page~="sec"]),
 body[data-view="paged"][data-page="net"] .panel:not([data-page~="net"]),
 body[data-view="paged"][data-page="cap"] .panel:not([data-page~="cap"]){display:none !important}
@@ -181,13 +199,17 @@ body[data-view="paged"][data-page="cap"] .panel:not([data-page~="cap"]){display:
   border:1px solid var(--line-2);border-radius:4px;padding:2px 6px;background:rgba(34,211,238,.08);
 }
 .p-h .chipbtn:hover{color:#a5f3fc;border-color:var(--cyan)}
+.p-h .chipbtn.on{color:#06121f;background:var(--cyan);border-color:var(--cyan)}
 
 /* 可拖动自定义 */
 .panel .grip{width:14px;height:14px;opacity:.5;cursor:grab;
   background:radial-gradient(circle at 3px 3px,currentColor 1.4px,transparent 1.5px) 0 0/6px 6px;color:var(--cyan)}
 .panel[draggable="true"]{cursor:grab}
 body.editing #stage .panel{cursor:move}
-body.editing #stage .p-b{pointer-events:none}
+body.editing .txt-editable{cursor:text;border-radius:3px;transition:outline-color .15s,background .15s}
+body.editing .txt-editable:hover{outline:1px dashed rgba(34,211,238,.75);background:rgba(34,211,238,.08)}
+body.editing .txt-editable.text-selected{outline:1px solid var(--cyan);background:rgba(34,211,238,.13);box-shadow:0 0 10px rgba(34,211,238,.18)}
+body.editing .txt-editable[contenteditable="true"]{outline:1px solid var(--amber);background:rgba(245,158,11,.12);cursor:text}
 .panel.dragover{border-color:var(--cyan);box-shadow:var(--glow);transform:translateY(-2px)}
 .panel.drag-h{opacity:.45}
 .sw{width:22px;height:22px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:.15s}
@@ -228,6 +250,13 @@ body.editing #stage .p-b{pointer-events:none}
 .li .tt{color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .li .ss{color:var(--txt-3);font-size:10px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .li .vv{font-weight:700;color:var(--c);font-size:13px;white-space:nowrap}
+#secRisk,#sla,#ticket{height:100%;overflow:auto;padding-right:2px}
+#secRisk .li,#sla .li,#ticket .li{flex-shrink:0}
+#secRisk::-webkit-scrollbar,#sla::-webkit-scrollbar,#ticket::-webkit-scrollbar{width:4px}
+#secRisk::-webkit-scrollbar-thumb,#sla::-webkit-scrollbar-thumb,#ticket::-webkit-scrollbar-thumb{
+  background:rgba(34,211,238,.25);border-radius:4px
+}
+#cap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:10px;align-content:start}
 
 /* 告警流 */
 #alertbar{
@@ -272,6 +301,7 @@ body.paused .flow{animation-play-state:paused}
 #mapPanel{position:relative;overflow:hidden;background:#04101f}
 /* 内置引擎（无底图示意图）画布 */
 #mapBuiltin{position:absolute;inset:0}
+#mapGoogle{position:absolute;inset:0;display:none;background:#06101f}
 #mapSvg{width:100%;height:100%;background:
   radial-gradient(1200px 420px at 50% 46%, rgba(23,95,170,.16), transparent 70%),
   linear-gradient(180deg,#04101f,#030a16)}
@@ -338,6 +368,34 @@ body.paused .flow{animation-play-state:paused}
 .assetbar .a span{font-size:9.5px;color:var(--txt-3);letter-spacing:.5px}
 .assetbar .a i{font-style:normal;font-size:9.5px;color:var(--txt-3);margin-left:3px}
 
+/* 会话与流向 */
+.flow-summary{display:flex;align-items:center;gap:14px;margin-bottom:7px;font-size:10.5px;color:var(--txt-3)}
+.flow-summary b{font-size:12px;color:var(--cyan);margin-left:3px}
+.flow-summary .src{margin-left:auto;color:var(--txt-2);border:1px solid var(--line);border-radius:10px;padding:2px 7px}
+.flow-rows{display:flex;flex-direction:column;gap:5px}
+.flow-row{display:grid;grid-template-columns:120px 22px 120px 1fr 112px;align-items:center;gap:7px;font-size:10.5px}
+.flow-row .end{color:var(--txt-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flow-row .arrow{text-align:center;color:var(--cyan);font-size:14px}
+.flow-row .bar{height:6px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden}
+.flow-row .bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--cyan),var(--blue));box-shadow:0 0 8px var(--cyan)}
+.flow-row .val{text-align:right;color:var(--txt);white-space:nowrap}
+
+/* 资产分类流量 TOP：服务器 / 存储 / 交换机 / AP 独立归组 */
+.asset-top-tabs{display:flex;gap:6px;margin-bottom:9px}
+.asset-top-tab{flex:1;text-align:center;padding:4px 3px;border:1px solid var(--line);border-radius:5px;color:var(--txt-3);font-size:10.5px;cursor:pointer;background:rgba(7,21,40,.66)}
+.asset-top-tab:hover{color:var(--txt-2);border-color:var(--line-2)}
+.asset-top-tab.on{color:#03111d;font-weight:800;border-color:var(--cyan);background:var(--cyan);box-shadow:0 0 12px rgba(34,211,238,.2)}
+.asset-top-meta{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px;color:var(--txt-3);font-size:10px}
+.asset-top-meta b{color:var(--cyan);font-weight:700}
+.asset-top-rows{display:flex;flex-direction:column;gap:7px}
+.asset-top-row{display:grid;grid-template-columns:22px minmax(92px,1fr) minmax(100px,1.6fr) 72px;align-items:center;gap:8px;font-size:10.5px}
+.asset-top-row .rank{width:20px;height:20px;border-radius:5px;display:grid;place-items:center;color:var(--txt-3);background:rgba(255,255,255,.04)}
+.asset-top-row:nth-child(-n+3) .rank{color:var(--cyan);border:1px solid rgba(34,211,238,.28);background:rgba(34,211,238,.08)}
+.asset-top-row .asset-name{color:var(--txt-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.asset-top-row .asset-bar{height:7px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden}
+.asset-top-row .asset-bar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--cyan),var(--blue));box-shadow:0 0 8px rgba(34,211,238,.45)}
+.asset-top-row .asset-val{text-align:right;color:var(--txt);white-space:nowrap}
+
 /* ============================================================
    抽屉：页签
    ============================================================ */
@@ -352,12 +410,12 @@ body.paused .flow{animation-play-state:paused}
 .tp.on{display:block}
 .fld{margin-bottom:9px}
 .fld label{display:block;font-size:10.5px;color:var(--txt-3);margin-bottom:3px;letter-spacing:.5px}
-.fld input,.fld textarea{
+.fld input,.fld textarea,.fld select{
   width:100%;background:rgba(3,12,26,.9);border:1px solid var(--line-2);border-radius:6px;
   color:var(--txt);font-size:11px;padding:6px 8px;font-family:ui-monospace,Consolas,monospace;
   outline:none;resize:vertical;
 }
-.fld input:focus,.fld textarea:focus{border-color:var(--cyan)}
+.fld input:focus,.fld textarea:focus,.fld select:focus{border-color:var(--cyan)}
 .fld .hint{font-size:9.5px;color:#4a688c;line-height:1.6;margin-top:3px}
 .fld textarea{height:190px;line-height:1.5}
 .fld .row2{display:flex;gap:6px}
@@ -383,7 +441,10 @@ body.paused .flow{animation-play-state:paused}
   position:absolute;right:20px;top:126px;width:290px;z-index:50;
   background:var(--panel-2);border:1px solid var(--line-2);border-radius:12px;padding:14px;
   box-shadow:0 20px 60px rgba(0,0,0,.6);display:none;
+  max-height:calc(100% - 146px);overflow-y:auto;overscroll-behavior:contain;
 }
+#drawer::-webkit-scrollbar{width:6px}
+#drawer::-webkit-scrollbar-thumb{background:rgba(56,189,248,.28);border-radius:6px}
 #drawer.show{display:block}
 #drawer h3{font-size:14px;letter-spacing:1px;margin-bottom:10px;color:var(--cyan)}
 #drawer .m{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 0;cursor:pointer;color:var(--txt-3)}
@@ -391,8 +452,21 @@ body.paused .flow{animation-play-state:paused}
   text-align:center;line-height:13px;color:var(--cyan)}
 #drawer .m.on{color:var(--txt)}
 #drawer .m.on span.box{background:rgba(34,211,238,.22);border-color:var(--cyan)}
+#drawer .m .mn{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#drawer .m .me{display:none;color:var(--cyan);font-size:10px;border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+#drawer .m[data-custom="1"] .me{display:block}
 #drawer .ops{display:flex;gap:8px;margin-top:12px}
 #drawer .ops .btn{flex:1;text-align:center;font-size:12px;padding:6px 0}
+
+/* 用户自定义模块 */
+.custom-empty{height:100%;display:flex;align-items:center;justify-content:center;color:var(--txt-3);font-size:11px}
+.custom-metric{height:100%;display:flex;align-items:center;justify-content:center;gap:10px}
+.custom-metric b{font-size:30px;color:var(--cyan);text-shadow:0 0 16px rgba(34,211,238,.35)}
+.custom-metric span{font-size:11px;color:var(--txt-2)}
+.custom-list{display:flex;flex-direction:column;gap:5px}
+.custom-list .ci{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:10.5px}
+.custom-list .ci span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt-2)}
+.custom-list .ci b{color:var(--cyan)}
 
 /* 告警分级图例 */
 #sevLegend{display:flex;gap:8px;padding:2px 16px 6px}
@@ -418,6 +492,11 @@ table.sm td:first-child{white-space:nowrap;font-weight:700}
   box-shadow:0 0 30px rgba(34,211,238,.22);white-space:nowrap;
 }
 body.editing .edit-tip{display:block}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    scroll-behavior:auto!important;transition-duration:.01ms!important}
+  .flow{animation:none!important}
+}
 </style>
 </head>
 <body>
@@ -428,14 +507,14 @@ body.editing .edit-tip{display:block}
     <div class="brand">
       <div class="logo"></div>
       <div>
-        <h1>网络与网络安全态势驾驶舱</h1>
-        <div class="sub">GLOBAL NETWORK &amp; SECURITY OPERATION COCKPIT · HQ DATA CENTER</div>
+        <h1>区域 IT 总部网络运营驾驶舱</h1>
+        <div class="sub">REGIONAL IT HQ · NETWORK OPERATIONS &amp; SECURITY COMMAND CENTER</div>
       </div>
       <div class="meta">
         <div class="src-chip"><i class="dot" id="srcDot"></i>Zabbix v7.0 · <span id="srcHost">10.252.28.99</span> · 同步 <span id="lastSync">--:--:--</span></div>
         <div class="btn" id="btnPause">⏸ 暂停轮询</div>
         <div class="btn" id="btnFit" title="点击切换适配模式：自适应 → 等比缩放 → 铺满">⛶ 适配</div>
-        <div class="btn" id="btnView" title="切换 单页集成 / 分屏预览（多页）">▦ 单页</div>
+        <div class="btn" id="btnView" title="切换全景集成 / 领导与专题视图">▦ 领导视图</div>
         <div class="btn" id="btnCustom">⚙ 自定义</div>
         <div class="btn" id="btnFull">⛶ 全屏</div>
       </div>
@@ -445,10 +524,19 @@ body.editing .edit-tip{display:block}
 
   <!-- 分屏预览页签：仅分屏模式可见 -->
   <div id="pagebar">
-    <div class="ptab on" data-page="net">网络全景</div>
-    <div class="ptab" data-page="sec">安全态势</div>
-    <div class="ptab" data-page="cap">业务容量</div>
-    <div class="pbar-hint">分屏预览 · 拖拽排序与模块显隐请在「单页」下调整</div>
+    <div class="ptab on" data-page="exec">区域总览</div>
+    <div class="ptab" data-page="net">网络运行</div>
+    <div class="ptab" data-page="sec">网络安全</div>
+    <div class="ptab" id="btnDual">双屏展示</div>
+    <div class="pbar-hint">单屏可切换专题；双屏将当前窗口设为网络运行，并打开安全副屏</div>
+  </div>
+
+  <div id="execSummary" aria-label="领导决策摘要">
+    <div class="exec-state"><i id="execDot"></i><div><b id="execState">区域整体稳定</b><span id="execGrade">区域网络健康 A</span></div></div>
+    <div class="exec-decision"><b id="execDecision">区域内暂无影响业务的重大异常</b><span>总部关注：受影响站点、核心业务、处置优先级与责任闭环</span></div>
+    <div class="exec-k"><span>链路健康</span><b id="execHealth">--%</b></div>
+    <div class="exec-k"><span>业务可用</span><b id="execSla">--%</b></div>
+    <div class="exec-k"><span>P1 紧急事项</span><b id="execP1">--</b></div>
   </div>
 
   <!-- ===================== 主体 ===================== -->
@@ -473,7 +561,7 @@ body.editing .edit-tip{display:block}
         <div class="p-b"><div class="rows" id="secTop"></div></div>
       </div>
 
-      <div class="panel" data-mod="secRisk" data-page="sec" style="flex:1">
+      <div class="panel" data-mod="secRisk" data-page="exec sec" style="flex:1">
         <div class="p-h"><i class="bar"></i><span class="t">高风险对象</span><span class="en">High Risk Assets</span>
           <div class="r"><i class="grip"></i></div></div>
         <div class="p-b"><div class="list" id="secRisk"></div></div>
@@ -482,7 +570,7 @@ body.editing .edit-tip{display:block}
 
     <!-- 中：网络全景 -->
     <div id="mid">
-      <div class="panel" data-mod="band" data-page="net" style="flex:0 0 148px">
+      <div class="panel" data-mod="band" data-page="exec net" style="flex:0 0 148px">
         <div class="p-h"><i class="bar"></i><span class="t">骨干网实时吞吐</span><span class="en">Core Throughput</span>
           <div class="r"><span id="capTxt">容量占用 --%</span><i class="grip"></i></div></div>
         <div class="p-b"><div class="big-nums" id="band"></div></div>
@@ -495,13 +583,14 @@ body.editing .edit-tip{display:block}
         <div class="p-b"><div id="topo" style="height:100%"></div></div>
       </div>
 
-      <!-- 地理分布：默认腾讯地图零Key模式，可切换引擎与自定义点位 -->
-      <div class="panel" data-mod="map" data-page="net" style="flex:0 0 252px">
-        <div class="p-h"><i class="bar"></i><span class="t">园区 · 机房地理分布</span><span class="en">Geographic View</span>
+      <!-- 地理分布：Google Maps 按需加载，始终保留离线回退 -->
+      <div class="panel" data-mod="map" data-page="exec net" style="flex:0 0 252px">
+        <div class="p-h"><i class="bar"></i><span class="t">区域总部 · 数据中心与分支分布</span><span class="en">Regional Sites</span>
           <div class="r"><span class="num" id="mapSiteCnt">--</span>
             <span class="chipbtn" id="mapEng">引擎</span><i class="grip"></i></div></div>
         <div class="p-b pb0" id="mapPanel">
           <div id="mapBuiltin"><svg id="mapSvg" viewBox="0 0 660 218" preserveAspectRatio="none"></svg></div>
+          <div id="mapGoogle" aria-label="Google 地图"></div>
           <div id="mapLegend" class="map-tool"></div>
           <div id="mapPop"></div>
           <div class="assetbar" id="assetBar"></div>
@@ -514,19 +603,25 @@ body.editing .edit-tip{display:block}
         </div>
       </div>
 
-      <div class="panel" data-mod="link" data-page="net" style="flex:0 0 176px">
-        <div class="p-h"><i class="bar"></i><span class="t">端口流量 / 丢包排行</span><span class="en">Interfaces TOP</span>
-          <div class="r"><i class="grip"></i></div></div>
+      <div class="panel" data-mod="link" data-page="exec net" style="flex:0 0 176px">
+        <div class="p-h"><i class="bar"></i><span class="t">主要设备会话与流量走向</span><span class="en">Sessions &amp; Traffic Flow</span>
+          <div class="r"><span class="chipbtn" id="flowViewBtn">会话流向</span><span class="chipbtn" id="ifViewBtn">接口排行</span><i class="grip"></i></div></div>
         <div class="p-b">
-          <div class="rows" id="linkRows" style="margin-bottom:10px"></div>
-          <svg id="spark" viewBox="0 0 640 78" style="width:100%;height:78px"></svg>
+          <div id="flowView">
+            <div class="flow-summary"><span>会话<b id="flowSessions">--</b></span><span>流量<b id="flowBytes">--</b></span><span>设备<b id="flowDevices">--</b></span><span class="src" id="flowSource">演示基线</span></div>
+            <div class="flow-rows" id="flowRows"></div>
+          </div>
+          <div id="ifView" hidden>
+            <div class="rows" id="linkRows" style="margin-bottom:10px"></div>
+            <svg id="spark" viewBox="0 0 640 78" style="width:100%;height:78px"></svg>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- 右：业务与容量 -->
     <div class="col" id="colR">
-      <div class="panel" data-mod="sla" data-page="cap" style="flex:1">
+      <div class="panel" data-mod="sla" data-page="exec net" style="flex:1">
         <div class="p-h"><i class="bar"></i><span class="t">业务系统可用率</span><span class="en">Service SLA</span>
           <div class="r"><i class="grip"></i></div></div>
         <div class="p-b"><div class="list" id="sla"></div></div>
@@ -538,7 +633,22 @@ body.editing .edit-tip{display:block}
         <div class="p-b"><div id="cap"></div></div>
       </div>
 
-      <div class="panel" data-mod="ticket" data-page="cap" style="flex:1">
+      <div class="panel" data-mod="assetTraffic" data-page="net" style="flex:1">
+        <div class="p-h"><i class="bar"></i><span class="t">资产分类流量 TOP</span><span class="en">Traffic by Asset Group</span>
+          <div class="r"><span id="assetTopSource">演示基线</span><i class="grip"></i></div></div>
+        <div class="p-b">
+          <div class="asset-top-tabs" id="assetTopTabs">
+            <span class="asset-top-tab on" data-kind="server">服务器</span>
+            <span class="asset-top-tab" data-kind="storage">存储</span>
+            <span class="asset-top-tab" data-kind="switch">交换机</span>
+            <span class="asset-top-tab" data-kind="ap">AP</span>
+          </div>
+          <div class="asset-top-meta"><span id="assetTopHint">按统计窗口累计流量排序</span><b id="assetTopTotal">--</b></div>
+          <div class="asset-top-rows" id="assetTopRows"></div>
+        </div>
+      </div>
+
+      <div class="panel" data-mod="ticket" data-page="exec" style="flex:1">
         <div class="p-h"><i class="bar"></i><span class="t">工单与变更</span><span class="en">Tickets &amp; Changes</span>
           <div class="r"><i class="grip"></i></div></div>
         <div class="p-b"><div class="list" id="ticket"></div></div>
@@ -564,6 +674,65 @@ body.editing .edit-tip{display:block}
 
     <div class="tp on" id="tpMod">
       <div id="modList"></div>
+
+      <div class="fld" style="border-top:1px solid var(--line);padding-top:10px;margin-top:6px">
+        <label>全局文字编辑</label>
+        <div class="hint" id="txtSelected" style="border:1px solid rgba(34,211,238,.18);border-radius:6px;padding:6px;margin-bottom:6px">
+          双击大屏中的任意文字开始编辑；Enter 保存，Esc 取消。
+        </div>
+        <div class="row2">
+          <input id="txtSize" type="number" min="8" max="72" step="1" placeholder="字号 px" />
+          <input id="txtColor" spellcheck="false" placeholder="颜色，如 #22d3ee" />
+          <select id="txtWeight" title="字体粗细">
+            <option value="">继承粗细</option>
+            <option value="400">常规</option>
+            <option value="600">半粗</option>
+            <option value="700">粗体</option>
+            <option value="800">特粗</option>
+          </select>
+        </div>
+        <div class="row2" style="margin-top:6px">
+          <div class="btn" id="txtApplyStyle">应用字体样式</div>
+          <div class="btn" id="txtRestoreOne">恢复选中文字</div>
+        </div>
+        <div class="row2" style="margin-top:6px">
+          <div class="btn" id="txtExport">导出文字配置</div>
+          <div class="btn" id="txtRestoreAll">恢复全部实时文字</div>
+        </div>
+        <div class="hint" id="txtMsg">手工文字会覆盖实时渲染内容，但数据仍在后台刷新；恢复后重新显示实时值。</div>
+      </div>
+
+      <div class="fld" style="border-top:1px solid var(--line);padding-top:10px;margin-top:6px">
+        <label>新增 / 修改自定义模块</label>
+        <input id="cmTitle" placeholder="模块标题，例如：核心链路 TOP" />
+        <div class="row2" style="margin-top:6px">
+          <select id="cmType" title="展示方式">
+            <option value="metric">单值指标</option>
+            <option value="ranking">TOP 排行</option>
+            <option value="list">明细列表</option>
+          </select>
+          <select id="cmSource" title="数据通道">
+            <option value="auto">自动甄别结果</option>
+            <option value="flow">会话流量</option>
+            <option value="alerts">告警事件</option>
+            <option value="metrics">性能指标</option>
+          </select>
+        </div>
+        <div class="row2" style="margin-top:6px">
+          <select id="cmCol" title="放置区域">
+            <option value="mid">中栏</option>
+            <option value="left">左栏</option>
+            <option value="right">右栏</option>
+          </select>
+          <input id="cmField" placeholder="字段，可留空自动选择" />
+        </div>
+        <div class="row2" style="margin-top:6px">
+          <div class="btn" id="cmNew">+ 新增模块</div>
+          <div class="btn" id="cmSave">保存修改</div>
+          <div class="btn" id="cmDelete">删除</div>
+        </div>
+        <div class="hint" id="cmMsg">新增后可继续改标题、类型、数据通道、字段和位置；列表中的“编辑”用于选中已有模块。</div>
+      </div>
 
       <div class="fld">
         <label>屏幕适配</label>
@@ -627,7 +796,7 @@ body.editing .edit-tip{display:block}
       <div class="fld" id="zbxFldToken">
         <label>Token</label>
         <input id="zbxToken" type="password" spellcheck="false" placeholder="zabbix_api_token_…" autocomplete="off" />
-        <div class="hint">前端明文保存于本地 localStorage。生产环境建议由反向代理注入 Authorization，不要把 Token 写进页面文件。</div>
+        <div class="hint">凭据仅保存在当前标签页的 sessionStorage，关闭标签页后清除。生产环境仍建议由反向代理注入 Authorization。</div>
       </div>
 
       <div class="fld" id="zbxFldPwd" hidden>
@@ -636,7 +805,7 @@ body.editing .edit-tip{display:block}
           <input id="zbxUser" spellcheck="false" placeholder="Zabbix 用户名" autocomplete="off" />
           <input id="zbxPass" type="password" placeholder="密码" autocomplete="off" />
         </div>
-        <div class="hint">Zabbix 没有"密码直传"的接口，标准做法是登录时调 <code>user.login</code> 换 sessionid，之后所有调用只带 sessionid。密码只在登录那一刻使用，不参与后续请求。</div>
+        <div class="hint">登录时调用 <code>user.login</code> 换取 sessionid，之后仅携带 sessionid。密码只保留在当前标签页会话中。</div>
       </div>
 
       <div class="fld" id="zbxFldSid" hidden>
@@ -713,8 +882,61 @@ body.editing .edit-tip{display:block}
             <input id="fazFSvc" spellcheck="false" placeholder="服务 service" />
             <input id="fazFVdom" spellcheck="false" placeholder="VDOM/区 vdom" />
           </div>
+          <div class="row2" style="margin-top:6px">
+            <input id="fazFDst" spellcheck="false" placeholder="目的地址 dstip" />
+            <input id="fazFDevice" spellcheck="false" placeholder="设备 devname" />
+          </div>
+          <div class="row2" style="margin-top:6px">
+            <input id="fazFBytesOut" spellcheck="false" placeholder="上行字节 sentbyte" />
+            <input id="fazFBytesIn" spellcheck="false" placeholder="下行字节 rcvdbyte" />
+          </div>
+          <div class="row2" style="margin-top:6px">
+            <input id="fazFSessions" spellcheck="false" placeholder="会话数 sessions（可选）" />
+          </div>
         </div>
         <div class="hint" id="fazMsg">尚未接入。取到日志后会自动覆盖「攻击趋势 / 攻击类型 TOP / 高风险清单 / 安全事件 KPI」。</div>
+      </div>
+
+      <div class="fld">
+        <label>主要设备会话 · REST 数据源</label>
+        <div class="row2">
+          <div class="btn" id="sessOn">启用会话接口</div>
+          <div class="btn" id="sessOff">停用</div>
+        </div>
+        <div class="fld" style="margin-top:6px">
+          <label>接口地址</label>
+          <input id="sessEp" spellcheck="false" placeholder="https://net-api.example.com/sessions" />
+        </div>
+        <div class="fld">
+          <label>Bearer Token（可选）</label>
+          <input id="sessToken" type="password" spellcheck="false" autocomplete="off" placeholder="仅保存在当前标签页" />
+        </div>
+        <div class="row2">
+          <div class="btn" id="sessTest">测试接口</div>
+          <div class="btn" id="sessSave">保存</div>
+        </div>
+        <div class="hint" id="sessMsg">兼容数组或 <code>data/result/items/rows/sessions</code> 包装。字段可用 <code>src/srcip</code>、<code>dst/dstip</code>、<code>device/devname</code>、<code>bytes/bytes_in/bytes_out</code>、<code>sessions/count</code>；提供 <code>asset_name</code> 与 <code>asset_type</code> 时，可自动归入服务器 / 存储 / 交换机 / AP 流量 TOP。</div>
+      </div>
+
+      <div class="fld">
+        <label>统一 REST 数据入口 · 自动甄别与分流</label>
+        <div class="row2">
+          <div class="btn" id="autoOn">启用自动分流</div>
+          <div class="btn" id="autoOff">停用</div>
+        </div>
+        <div class="fld" style="margin-top:6px">
+          <label>接口地址</label>
+          <input id="autoEp" spellcheck="false" placeholder="https://net-api.example.com/feed" />
+        </div>
+        <div class="fld">
+          <label>Bearer Token（可选）</label>
+          <input id="autoToken" type="password" spellcheck="false" autocomplete="off" placeholder="仅保存在当前标签页" />
+        </div>
+        <div class="row2">
+          <div class="btn" id="autoTest">测试并识别</div>
+          <div class="btn" id="autoSave">保存</div>
+        </div>
+        <div class="hint" id="autoMsg">按字段结构识别：源/目的/字节 → 会话流；severity/message/action/attack → 安全事件；name/key/value/lastvalue → 指标。低置信度数据不会自动覆盖大屏。</div>
       </div>
 
       <div class="fld">
@@ -767,6 +989,16 @@ body.editing .edit-tip{display:block}
     </div>
 
     <div class="tp" id="tpGeo">
+      <div class="fld">
+        <label>Google Maps 在线地图</label>
+        <input id="geoGoogleKey" type="password" spellcheck="false" autocomplete="off" placeholder="Google Maps JavaScript API Key" />
+        <div class="row2" style="margin-top:6px">
+          <div class="btn" id="geoGoogleUse">保存并启用 Google 地图</div>
+          <div class="btn" id="geoOfflineUse">切回离线地图</div>
+        </div>
+        <div class="hint" id="geoGoogleMsg">API Key 只保存在当前标签页。生产环境请限制为指定网站来源，并仅授权 Maps JavaScript API。</div>
+      </div>
+
       <div class="fld">
         <label>离线底图（可选 · 完全不出网）</label>
         <div class="row2">
@@ -1008,6 +1240,33 @@ document.getElementById('btnFull').onclick = () => {
  *       hostgroup.get / host.get / trigger.get / item.get
  *     可选扩展：event.get（问题事件原文）、discovery.get（自动发现）
  * ======================================================================== */
+/* 敏感凭据只保留在当前标签页。首次升级会把旧版 localStorage 中的明文值迁移后删除。 */
+const SecretStore = {
+  get(key){
+    try{
+      const current = sessionStorage.getItem(key);
+      if (current !== null) return current;
+      const legacy = localStorage.getItem(key);
+      if (legacy !== null){
+        sessionStorage.setItem(key, legacy);
+        localStorage.removeItem(key);
+        return legacy;
+      }
+    }catch(e){}
+    return '';
+  },
+  set(key, value){
+    try{
+      if (value) sessionStorage.setItem(key, String(value));
+      else sessionStorage.removeItem(key);
+      localStorage.removeItem(key);
+    }catch(e){}
+  },
+  remove(key){
+    try{ sessionStorage.removeItem(key); localStorage.removeItem(key); }catch(e){}
+  }
+};
+
 /* 指标通道默认值：slot 决定接管哪块面板，下标决定接管该面板的第几行。
    key 留空 = 不接管该行，继续用演示基线。用户可通过抽屉「指标映射」改。 */
 const CHANNEL_DEFAULT = [
@@ -1023,14 +1282,14 @@ const CHANNEL_DEFAULT = [
 const ZabbixAdapter = {
   key      : 'netcockpit.zbx.ch',   // 映射配置存储键
   endpoint: localStorage.getItem('netcockpit.zbx.ep')    || 'http://10.252.28.99/api_jsonrpc.php',
-  token   : localStorage.getItem('netcockpit.zbx.token') || '',
+  token   : SecretStore.get('netcockpit.zbx.token'),
   /* 账号密码登录模式：Zabbix 没有「密码直传」的 API，标准做法是 user.login 换 sessionid，
      之后所有调用带上 sessionid。sid 与账号一起缓存，失效时自动重登一次。 */
   authMode: localStorage.getItem('netcockpit.zbx.mode') || 'token',  // token | pwd | sid
   user    : localStorage.getItem('netcockpit.zbx.user') || '',
-  pass    : localStorage.getItem('netcockpit.zbx.pass') || '',
-  sid     : localStorage.getItem('netcockpit.zbx.sid')  || '',
-  sidAt   : +(localStorage.getItem('netcockpit.zbx.sidat') || 0),
+  pass    : SecretStore.get('netcockpit.zbx.pass'),
+  sid     : SecretStore.get('netcockpit.zbx.sid'),
+  sidAt   : +(SecretStore.get('netcockpit.zbx.sidat') || 0),
   timeout : 8000,
   live    : localStorage.getItem('netcockpit.zbx.live') === '1',
   lastSync: 0,
@@ -1038,7 +1297,7 @@ const ZabbixAdapter = {
   _seq    : 1,
 
   /* --- 当前调用凭证：sid 优先于 token --- */
-  cred(){ return (this.authMode === 'pwd' && this.sid) ? this.sid : this.token; },
+  cred(){ return (this.authMode === 'pwd' || this.authMode === 'sid') ? this.sid : this.token; },
   /* session 按 Zabbix 默认会话上限 15 分钟保守取 13 分钟，过期静默重登 */
   sidFresh(){ return this.authMode !== 'pwd' ? true : (Date.now() - this.sidAt < 13*60*1000); },
 
@@ -1052,18 +1311,15 @@ const ZabbixAdapter = {
     const sid = (res && typeof res === 'object') ? (res.sessionid || res.sessionId) : res;
     if (!sid || typeof sid !== 'string') throw new Error('登录成功但未返回 sessionid（该版本接口已变更）');
     this.sid = sid; this.sidAt = Date.now();
-    try{
-      localStorage.setItem('netcockpit.zbx.sid', sid);
-      localStorage.setItem('netcockpit.zbx.sidat', String(this.sidAt));
-    }catch(e){}
+    SecretStore.set('netcockpit.zbx.sid', sid);
+    SecretStore.set('netcockpit.zbx.sidat', String(this.sidAt));
     return sid;
   },
   logout(){
-    if (this.cred()){
-      try{ this.rpc({ jsonrpc:'2.0', method:'user.logout', params:{}, id: this._seq++ }); }catch(e){}
-    }
+    const cred = this.cred();
+    if (cred) this.rpc({ jsonrpc:'2.0', method:'user.logout', params:{}, id: this._seq++, auth:cred }).catch(function(){});
     this.sid = ''; this.sidAt = 0;
-    try{ localStorage.removeItem('netcockpit.zbx.sid'); localStorage.removeItem('netcockpit.zbx.sidat'); }catch(e){}
+    SecretStore.remove('netcockpit.zbx.sid'); SecretStore.remove('netcockpit.zbx.sidat');
   },
   /* 裸 RPC：不带 auth 字段，供 login/logout 自身使用 */
   async rpc(body, ms){
@@ -1085,17 +1341,18 @@ const ZabbixAdapter = {
   },
   /* 取凭证：密码模式先确保 session 有效，失效只重登一次，不再重试（避免密码错误时反复打服务端） */
   async ensureCred(){
-    if (this.authMode !== 'pwd') return this.cred();
-    if (!this.sidFresh() || !this.sid) await this.login();
-    return this.sid;
+    if (this.authMode === 'pwd'){
+      if (!this.sidFresh() || !this.sid) await this.login();
+      return this.sid;
+    }
+    return this.cred();
   },
 
   /* --- JSON-RPC 调用：单条，带超时 --- */
   async call(method, params, ms){
     if (!this.endpoint) throw new Error('未配置接入地址');
-    if (!this.cred()) throw new Error('未配置接入凭证（Token 或账号密码）');
     const cred = await this.ensureCred();
-    if (!cred) throw new Error('账号密码登录失败，未拿到 sessionid');
+    if (!cred) throw new Error(this.authMode === 'pwd' ? '账号密码登录失败，未拿到 sessionid' : '未配置接入凭证');
     const id = this._seq++;
     const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     const tm  = setTimeout(function(){ ctl && ctl.abort(); }, ms || this.timeout);
@@ -1107,6 +1364,7 @@ const ZabbixAdapter = {
                                   params: params || {}, id: id, auth: cred }),
         signal : ctl ? ctl.signal : undefined
       });
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + r.statusText);
       const j = await r.json();
       if (j.error) throw new Error('[' + (j.error.code || '?') + '] ' + (j.error.message || 'API 报错'));
       return j.result;
@@ -1445,7 +1703,8 @@ const FAZ_DEF = {
   user:'', pass:'', token:'',
   win:60, limit:2000, extra:'',
   fTime:'@timestamp', fSrc:'srcip', fAttack:'attack', fAction:'action',
-  fSvc:'service', fPolicy:'policyid', fVdom:'vdom'
+  fSvc:'service', fPolicy:'policyid', fVdom:'vdom',
+  fDst:'dstip', fDevice:'devname', fBytesOut:'sentbyte', fBytesIn:'rcvdbyte', fSessions:'sessions'
 };
 /* 字段名别名：不同版本/不同设备的日志字段名有出入，按此顺序兜底 */
 const FAZ_ALIAS = {
@@ -1455,7 +1714,12 @@ const FAZ_ALIAS = {
   fAction : ['action','act','result','policy_action','verdict'],
   fSvc    : ['service','service_name','dstservice','protocol','proto','app','appname'],
   fPolicy : ['policyid','policy','policy_id','id'],
-  fVdom   : ['vdom','vdomname','site','domain']
+  fVdom   : ['vdom','vdomname','site','domain'],
+  fDst    : ['dstip','dst','dstaddr','destination','destination_ip','dst_host'],
+  fDevice : ['devname','device','hostname','appliance','firewall','sensor'],
+  fBytesOut:['sentbyte','sent_bytes','bytes_out','out_bytes','tx_bytes'],
+  fBytesIn :['rcvdbyte','recvbyte','received_bytes','bytes_in','in_bytes','rx_bytes'],
+  fSessions:['sessions','session_count','count','flows','connections']
 };
 /* 签名名 → 大屏展示口径（命中不了就原样显示，不硬译） */
 const FAZ_SIG = [
@@ -1473,26 +1737,225 @@ const FAZ_SIG = [
 const FAZ_BLOCK_RE = /^(deny|denied|block|blocked|drop|dropped|reject|rejected|reset|close)$/i;
 const FAZ_PASS_RE  = /^(allow|allowed|pass|passed|accept|accepted|permit|permitted|forward)$/i;
 
+/* 会话流量统一模型：兼容常见 NetFlow/IPFIX、防火墙会话与自定义 REST 字段。 */
+const FlowModel = {
+  aliases:{
+    src:['src','srcip','src_ip','source','source_ip','srcaddr'],
+    dst:['dst','dstip','dst_ip','destination','destination_ip','dstaddr'],
+    device:['device','devname','hostname','appliance','firewall','sensor'],
+    asset:['asset','asset_name','assetname','node','host_name','display_name'],
+    type:['device_type','asset_type','assettype','category','role','class','type'],
+    service:['service','app','application','protocol','proto','dstservice'],
+    bytes:['bytes','total_bytes','traffic','octets'],
+    bytesOut:['bytes_out','out_bytes','sentbyte','sent_bytes','tx_bytes'],
+    bytesIn:['bytes_in','in_bytes','rcvdbyte','recvbyte','received_bytes','rx_bytes'],
+    sessions:['sessions','session_count','count','flows','connections']
+  },
+  pick(o, names){
+    if (!o) return undefined;
+    for (let i=0;i<names.length;i++) if (o[names[i]] !== undefined) return o[names[i]];
+    const keys = Object.keys(o);
+    for (let i=0;i<keys.length;i++){
+      const k = keys[i].toLowerCase();
+      if (names.some(n=>n.toLowerCase()===k)) return o[keys[i]];
+    }
+    return undefined;
+  },
+  rows(payload){
+    let x = payload;
+    const names=['data','result','items','rows','sessions'];
+    for (let depth=0;depth<4 && x && !Array.isArray(x);depth++){
+      let next=null;
+      for (const k of names){
+        if (Array.isArray(x[k])) return x[k].filter(o=>o&&typeof o==='object');
+        if (!next && x[k] && typeof x[k]==='object') next=x[k];
+      }
+      if (!next) break; x=next;
+    }
+    return Array.isArray(x) ? x.filter(o=>o && typeof o==='object') : [];
+  },
+  num(v){ const n = Number(v); return isFinite(n) && n > 0 ? n : 0; },
+  build(rows, reader, source){
+    const groups = {}, devices = new Set();
+    let totalSessions = 0, totalBytes = 0;
+    (rows || []).forEach(function(o){
+      const get = reader ? function(k){ return reader(o,k); } : function(k){ return FlowModel.pick(o, FlowModel.aliases[k]); };
+      const src = String(get('src') || '未知源');
+      const dst = String(get('dst') || '未知目的');
+      const device = String(get('device') || '未标设备');
+      const assetName = String(get('asset') || device);
+      const assetType = String(get('type') || '');
+      const service = String(get('service') || '—');
+      const sessions = Math.max(1, FlowModel.num(get('sessions')) || 1);
+      const recordTotalBytes = FlowModel.num(get('bytes'));
+      const directionalBytes = FlowModel.num(get('bytesOut')) + FlowModel.num(get('bytesIn'));
+      // Prefer an explicit total. Some collectors return total + in/out together,
+      // and summing all three would count the same traffic twice.
+      const bytes = recordTotalBytes || directionalBytes;
+      if (src === '未知源' && dst === '未知目的') return;
+      const key = [device,assetName,assetType,src,dst,service].join('\u0001');
+      if (!groups[key]) groups[key] = { src:src,dst:dst,device:device,assetName:assetName,assetType:assetType,service:service,sessions:0,bytes:0 };
+      groups[key].sessions += sessions; groups[key].bytes += bytes;
+      totalSessions += sessions; totalBytes += bytes; devices.add(device);
+    });
+    const allItems = Object.keys(groups).map(k=>groups[k]).sort(function(a,b){
+      return (b.bytes || b.sessions) - (a.bytes || a.sessions);
+    }).slice(0,200);
+    const items = allItems.slice(0,6);
+    if (!items.length) return null;
+    return { _real:true, source:source || '实时会话', items:items,
+             allItems:allItems, totalSessions:totalSessions, totalBytes:totalBytes, devices:devices.size };
+  }
+};
+
+const SESSION_DEF = { on:false, ep:'' };
+const SessionAdapter = {
+  cfg:(function(){
+    let saved={}; try{ saved=JSON.parse(localStorage.getItem('netcockpit.sessions')||'{}')||{}; }catch(e){}
+    return Object.assign({}, SESSION_DEF, saved, { token:SecretStore.get('netcockpit.sessions.token') });
+  })(),
+  timeout:12000, errors:[], lastSync:0,
+  save(){
+    const safe={ on:!!this.cfg.on, ep:this.cfg.ep || '' };
+    try{ localStorage.setItem('netcockpit.sessions', JSON.stringify(safe)); }catch(e){}
+    SecretStore.set('netcockpit.sessions.token', this.cfg.token || '');
+  },
+  async fetch(){
+    if (!this.cfg.on || !this.cfg.ep) return null;
+    this.errors=[];
+    const ctl = typeof AbortController!=='undefined' ? new AbortController() : null;
+    const tm = setTimeout(function(){ if (ctl) ctl.abort(); }, this.timeout);
+    try{
+      const headers={ Accept:'application/json' };
+      if (this.cfg.token) headers.Authorization='Bearer '+this.cfg.token;
+      const r=await fetch(this.cfg.ep,{ method:'GET',headers:headers,signal:ctl?ctl.signal:undefined });
+      if (!r.ok) throw new Error('HTTP '+r.status+' '+r.statusText);
+      const json=await r.json();
+      const flow=FlowModel.build(FlowModel.rows(json),null,'会话 REST');
+      if (!flow) throw new Error('接口返回成功，但没有可识别的会话记录');
+      this.lastSync=Date.now(); return flow;
+    }catch(e){ this.errors=[e.message||String(e)]; return null; }
+    finally{ clearTimeout(tm); }
+  }
+};
+SessionAdapter.save();
+
+/* 统一数据入口：只按可验证的字段结构分流，置信度不足时保持 unknown，避免误覆盖。 */
+const DataRouter = {
+  latest:null,
+  rows(payload){
+    const direct=FlowModel.rows(payload);
+    if (direct.length) return direct;
+    return payload && typeof payload==='object' && !Array.isArray(payload) ? [payload] : [];
+  },
+  keys(rows){
+    const s=new Set(); (rows||[]).slice(0,20).forEach(function(o){
+      Object.keys(o||{}).forEach(function(k){ s.add(k.toLowerCase()); });
+    }); return s;
+  },
+  has(keys,names){ return names.some(function(n){ return keys.has(n); }); },
+  classify(payload){
+    const rows=this.rows(payload), keys=this.keys(rows);
+    if(!rows.length)return {kind:'unknown',confidence:0,rows:[],reason:'没有找到记录数组'};
+    let flow=0,alerts=0,metrics=0;
+    const hasSrc=this.has(keys,['src','srcip','src_ip','source','source_ip','srcaddr']);
+    const hasDst=this.has(keys,['dst','dstip','dst_ip','destination','destination_ip','dstaddr']);
+    const hasTraffic=this.has(keys,['bytes','total_bytes','bytes_in','bytes_out','sentbyte','rcvdbyte','sessions','flows']);
+    if(hasSrc)flow+=2;if(hasDst)flow+=2;if(hasTraffic)flow+=3;
+    if(this.has(keys,['attack','attacksig','signature','attackname']))alerts+=4;
+    if(this.has(keys,['severity','priority','level','message','event','action','verdict']))alerts+=2;
+    if(this.has(keys,['srcip','source_ip','host','device']))alerts+=1;
+    if(this.has(keys,['name','metric','key','key_','item','label']))metrics+=2;
+    if(this.has(keys,['value','lastvalue','last_value','val','unit','units']))metrics+=2;
+    const ranked=[['flow',flow],['alerts',alerts],['metrics',metrics]].sort(function(a,b){return b[1]-a[1];});
+    const best=ranked[0],second=ranked[1];
+    if(best[1]<3||best[1]===second[1]||(best[0]==='flow'&&!hasTraffic))return {kind:'unknown',confidence:best[1],rows:rows,reason:'字段特征不足、类型得分相同或缺少流量计数'};
+    return {kind:best[0],confidence:best[1],rows:rows,reason:'命中 '+best[1]+' 个结构特征'};
+  },
+  pick(o,names){ return FlowModel.pick(o,names); },
+  route(payload){
+    const c=this.classify(payload),out={kind:c.kind,confidence:c.confidence,reason:c.reason,rawRows:c.rows};
+    if(c.kind==='flow')out.flow=FlowModel.build(c.rows,null,'统一入口 · 自动分流');
+    if(c.kind==='alerts'){
+      out.alerts=c.rows.slice(0,80).map(function(o){
+        const sev=String(DataRouter.pick(o,['severity','priority','level','sev'])||'P3').toUpperCase();
+        const lv=/(^P?1$|CRIT|DISASTER|HIGH)/.test(sev)?'P1':/(^P?2$|MAJOR)/.test(sev)?'P2':/(^P?4$|INFO|LOW)/.test(sev)?'P4':'P3';
+        const msg=DataRouter.pick(o,['message','msg','event','attack','attacksig','signature','action'])||'安全事件';
+        const rawTime=DataRouter.pick(o,['timestamp','time','clock','@timestamp']),numTime=Number(rawTime);
+        const eventTime=isFinite(numTime)&&numTime>0&&numTime<1e12?numTime*1000:(rawTime||Date.now());
+        return {lv:lv,msg:esc(String(msg)),ip:String(DataRouter.pick(o,['srcip','source_ip','src','host','device'])||'—'),g:'自动分流',tm:fmtTime(eventTime)};
+      });
+    }
+    if(c.kind==='metrics'){
+      out.metrics=c.rows.slice(0,100).map(function(o){
+        const name=DataRouter.pick(o,['name','metric','key','key_','item','label'])||'指标';
+        const value=DataRouter.pick(o,['value','lastvalue','last_value','val']);
+        return {name:String(name),value:isFinite(Number(value))?Number(value):value,unit:String(DataRouter.pick(o,['unit','units'])||'')};
+      });
+    }
+    this.latest=out; return out;
+  }
+};
+
+const AUTO_DEF={on:false,ep:''};
+const AutoSourceAdapter={
+  cfg:(function(){let x={};try{x=JSON.parse(localStorage.getItem('netcockpit.auto-source')||'{}')||{};}catch(e){}return Object.assign({},AUTO_DEF,x,{token:SecretStore.get('netcockpit.auto-source.token')});})(),
+  timeout:12000,errors:[],last:null,lastSync:0,
+  save(){
+    try{localStorage.setItem('netcockpit.auto-source',JSON.stringify({on:!!this.cfg.on,ep:this.cfg.ep||''}));}catch(e){}
+    SecretStore.set('netcockpit.auto-source.token',this.cfg.token||'');
+  },
+  async fetch(){
+    if(!this.cfg.on||!this.cfg.ep)return null;
+    this.errors=[];const ctl=typeof AbortController!=='undefined'?new AbortController():null;
+    const tm=setTimeout(function(){if(ctl)ctl.abort();},this.timeout);
+    try{
+      const h={Accept:'application/json'};if(this.cfg.token)h.Authorization='Bearer '+this.cfg.token;
+      const r=await fetch(this.cfg.ep,{headers:h,signal:ctl?ctl.signal:undefined});
+      if(!r.ok)throw new Error('HTTP '+r.status+' '+r.statusText);
+      const routed=DataRouter.route(await r.json());
+      if(routed.kind==='unknown')throw new Error('无法可靠甄别：'+routed.reason);
+      this.last=routed;this.lastSync=Date.now();return routed;
+    }catch(e){this.errors=[e.message||String(e)];return null;}finally{clearTimeout(tm);}
+  }
+};
+AutoSourceAdapter.save();
+
 const FazAdapter = {
-  cfg : Object.assign({}, FAZ_DEF, (function(){ try{ return JSON.parse(localStorage.getItem('netcockpit.faz')||'{}'); }catch(e){ return {}; } })()),
+  cfg : (function(){
+    let saved = {};
+    try{ saved = JSON.parse(localStorage.getItem('netcockpit.faz')||'{}') || {}; }catch(e){}
+    const cfg = Object.assign({}, FAZ_DEF, saved);
+    cfg.pass = SecretStore.get('netcockpit.faz.pass') || cfg.pass || '';
+    cfg.token = SecretStore.get('netcockpit.faz.token') || cfg.token || '';
+    return cfg;
+  })(),
   timeout: 15000,
   errors: [],
   lastSync: 0,
   sample: '',
 
-  save(){ try{ localStorage.setItem('netcockpit.faz', JSON.stringify(this.cfg)); }catch(e){} },
+  save(){
+    const safe = Object.assign({}, this.cfg);
+    delete safe.pass; delete safe.token;
+    try{ localStorage.setItem('netcockpit.faz', JSON.stringify(safe)); }catch(e){}
+    SecretStore.set('netcockpit.faz.pass', this.cfg.pass);
+    SecretStore.set('netcockpit.faz.token', this.cfg.token);
+  },
 
   /* --- 带超时的一次请求；把原始响应留一份，便于在抽屉里排查 --- */
-  async req(body, headers){
+  async req(body, headers, session){
     const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     const tm  = setTimeout(function(){ ctl && ctl.abort(); }, this.timeout);
     try{
+      const payload = session ? Object.assign({}, body, { session:session }) : body;
       const r = await fetch(this.cfg.ep, {
         method : 'POST',
         headers: Object.assign({ 'Content-Type':'application/json' }, headers || {}),
-        body   : JSON.stringify(body),
+        body   : JSON.stringify(payload),
         signal : ctl ? ctl.signal : undefined
       });
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + r.statusText);
       const txt = await r.text();
       let json = null;
       try{ json = JSON.parse(txt); }catch(e){}
@@ -1549,9 +2012,9 @@ const FazAdapter = {
     if (v === undefined && o.date) v = o.date;
     if (typeof v === 'number') return v > 1e11 ? Math.round(v/1000) : Math.round(v);
     if (v === undefined && o.time){
-      const m = String(o.date||'').match(/(\d{4})-(\d{2})-(\d{2})/)
-             && String(o.time).match(/(\d{2}):(\d{2}):(\d{2})/);
-      if (m) return Math.round(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]) / 1000);
+      const dm = String(o.date||'').match(/(\d{4})-(\d{2})-(\d{2})/);
+      const tm = String(o.time).match(/(\d{2}):(\d{2}):(\d{2})/);
+      if (dm && tm) return Math.round(Date.UTC(+dm[1], +dm[2]-1, +dm[3], +tm[1], +tm[2], +tm[3]) / 1000);
       return null;
     }
     const s = String(v || '');
@@ -1654,6 +2117,13 @@ const FazAdapter = {
     const topSrcShare = risk.length ? Math.max.apply(null, risk.map(x=>x.n)) / total : 0;
     const srcPen = Math.min(20, Math.max(0, (topSrcShare - 0.10) * 200));
     const score = Math.max(10, Math.min(99, Math.round(rate - densPen - srcPen)));
+    const flowKey = { src:'fSrc', dst:'fDst', device:'fDevice', service:'fSvc',
+                      bytesOut:'fBytesOut', bytesIn:'fBytesIn', sessions:'fSessions' };
+    const flow = FlowModel.build(list, function(o,k){
+      if (k === 'bytes') return undefined;
+      if (k === 'device') return FazAdapter.fld(o, flowKey[k]) || FazAdapter.fld(o, 'fVdom');
+      return flowKey[k] ? FazAdapter.fld(o, flowKey[k]) : undefined;
+    }, 'FortiAnalyzer');
 
     return {
       _real : true,
@@ -1671,6 +2141,7 @@ const FazAdapter = {
         ]
       },
       secTrend: { hours:hours, hit:hit, block:blk, blockedRate:rate },
+      flow     : flow,
       secTop  : top.map(function(x, i){
         const cols = [[C.red,'#fb7185'],[C.amber,'#fbbf24'],[C.purple,'#c084fc'],[C.blue,'#60a5fa'],[C.cyan,'#67e8f9']];
         return { n:x.n, v:x.v, c1:cols[i%5][0], c2:cols[i%5][1] };
@@ -1702,6 +2173,8 @@ const FazAdapter = {
     }
   }
 };
+/* 立即清理旧版可能落在 localStorage JSON 中的敏感字段。 */
+FazAdapter.save();
 
 const C = { cyan:'#22d3ee', blue:'#3b82f6', green:'#22c55e', amber:'#f59e0b',
             red:'#f43f5e', purple:'#a855f7', pink:'#ec4899', lime:'#84cc16', gray:'#94a3b8' };
@@ -1765,9 +2238,10 @@ const SITE_TYPE = {
 const GEO_KEY = 'netcockpit.geo.v1';
 const MapLayer = {
   points: [],
-  engine: 'builtin',       // 纯离线：内置示意图 / 用户自备底图，无在线瓦片
+  engine: localStorage.getItem(GEO_KEY + '.engine') || 'builtin',
+  googleKey: SecretStore.get('netcockpit.geo.google.key'),
   health: {},
-  tmap: null, layer: null, marker: null,
+  gmap: null, gmarkers: [], gInfo: null, _googlePromise:null,
   svgr: null,
   filter: 'all',
 
@@ -1789,20 +2263,96 @@ const MapLayer = {
     this.svgr = document.getElementById('mapSvg');
     this.bindEvents();
     this.renderLegend();
-    this.renderBuiltin();
     this.renderAssetBar();
-    this.noteEngine();
+    if (this.engine === 'google' && this.googleKey) this.showGoogle();
+    else this.showBuiltin();
   },
 
-  /* ---- 纯离线：不加载任何在线地图 SDK / 瓦片。
-         点位按经纬度线性投影到画布，底图由用户自备合规图片导入（见抽屉「地图与数据」） ---- */
+  /* Google Maps 只在用户显式启用时按需加载，离线示意图始终可用。 */
   noteEngine(){
     const el = document.getElementById('mapEng');
     if (!el) return;
+    if (this.engine === 'google'){
+      el.textContent='Google Maps'; el.style.color='#67e8f9'; el.style.borderColor='rgba(34,211,238,.55)';
+      return;
+    }
     const has = !!(this.base && this.base.src);
     el.textContent = has ? '离线 · 底图' : '离线 · 示意图';
     el.style.color = has ? '#22c55e' : 'var(--txt-2)';
     el.style.borderColor = has ? 'rgba(34,197,94,.5)' : 'var(--line)';
+  },
+  loadGoogle(){
+    if (window.google && google.maps && google.maps.importLibrary) return Promise.resolve(window.google);
+    if (this._googlePromise) return this._googlePromise;
+    if (!this.googleKey) return Promise.reject(new Error('未配置 Google Maps API Key'));
+    this._googlePromise = new Promise(function(resolve,reject){
+      const s=document.createElement('script');
+      s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(MapLayer.googleKey)+'&loading=async&v=quarterly&language=zh-CN';
+      s.async=true; s.onerror=function(){ reject(new Error('Google Maps SDK 加载失败，请检查网络、Key 与来源限制')); };
+      s.onload=function(){ resolve(window.google); }; document.head.appendChild(s);
+    });
+    return this._googlePromise;
+  },
+  async showGoogle(){
+    this.engine='google'; localStorage.setItem(GEO_KEY+'.engine','google'); this.noteEngine(); this.hidePop();
+    const offline=document.getElementById('mapBuiltin'), online=document.getElementById('mapGoogle');
+    offline.style.display='none'; online.style.display='block';
+    try{
+      await this.loadGoogle(); await Promise.all([google.maps.importLibrary('maps'),google.maps.importLibrary('marker')]);
+      if (!this.gmap){
+        this.gmap=new google.maps.Map(online,{
+          center:this.centerOf(),zoom:6,disableDefaultUI:true,zoomControl:true,gestureHandling:'cooperative',
+          backgroundColor:'#06101f',styles:[
+            {elementType:'geometry',stylers:[{color:'#0b1b2e'}]},
+            {elementType:'labels.text.stroke',stylers:[{color:'#0b1b2e'}]},
+            {elementType:'labels.text.fill',stylers:[{color:'#7893b3'}]},
+            {featureType:'road',elementType:'geometry',stylers:[{color:'#17324d'}]},
+            {featureType:'water',elementType:'geometry',stylers:[{color:'#07111f'}]},
+            {featureType:'poi',stylers:[{visibility:'off'}]},
+            {featureType:'transit',stylers:[{visibility:'off'}]}
+          ]
+        });
+      }
+      this.renderGoogle();
+      const msg=document.getElementById('geoGoogleMsg');
+      if (msg) msg.innerHTML='<span style="color:var(--green)">✓ Google 地图已启用</span> · 点位与实时健康状态已同步。';
+    }catch(e){
+      this.engine='builtin'; localStorage.setItem(GEO_KEY+'.engine','builtin'); this._googlePromise=null;
+      const msg=document.getElementById('geoGoogleMsg');
+      if (msg) msg.innerHTML='<span style="color:var(--red)">✕ '+esc(e.message||e)+'</span>，已自动回退离线地图。';
+      this.showBuiltin();
+    }
+  },
+  showBuiltin(){
+    this.engine='builtin'; localStorage.setItem(GEO_KEY+'.engine','builtin');
+    document.getElementById('mapGoogle').style.display='none';
+    document.getElementById('mapBuiltin').style.display='block';
+    this.noteEngine(); this.renderBuiltin();
+  },
+  renderGoogle(){
+    if (!this.gmap){ if (this.engine==='google') this.showGoogle(); return; }
+    this.gmarkers.forEach(function(m){ m.setMap(null); }); this.gmarkers=[];
+    const visible=this.filter==='all' ? this.points : this.points.filter(q=>q.type===this.filter||q.id===this.filter);
+    const bounds=new google.maps.LatLngBounds();
+    visible.forEach(function(p){
+      const st=MapLayer.eff(p), color=st===0?'#f43f5e':st===2?'#f59e0b':'#22d3ee';
+      const marker=new google.maps.Marker({
+        map:MapLayer.gmap,position:{lat:+p.lat,lng:+p.lng},title:p.name,
+        icon:{path:google.maps.SymbolPath.CIRCLE,scale:8,fillColor:color,fillOpacity:.92,strokeColor:'#e8f2ff',strokeWeight:1.5}
+      });
+      marker.addListener('click',function(){
+        const rate=MapLayer.rate(p), type=(SITE_TYPE[p.type]||SITE_TYPE.campus).name;
+        const html='<div style="min-width:190px;color:#10233b;font:12px system-ui"><b>'+esc(p.name)+'</b>'+
+          '<div style="margin-top:5px">'+esc(type)+' · '+esc(p.id)+'</div>'+
+          '<div>健康：<b style="color:'+color+'">'+(rate!=null?rate+'%':(st===0?'异常':st===2?'降级':'正常'))+'</b></div>'+
+          '<div>设备 '+(p.assets.net||0)+' · 服务器 '+(p.assets.srv||0)+' · 存储 '+(p.assets.sto||0)+'</div></div>';
+        if (!MapLayer.gInfo) MapLayer.gInfo=new google.maps.InfoWindow();
+        MapLayer.gInfo.setContent(html); MapLayer.gInfo.open({map:MapLayer.gmap,anchor:marker});
+      });
+      MapLayer.gmarkers.push(marker); bounds.extend(marker.getPosition());
+    });
+    if (visible.length>1) this.gmap.fitBounds(bounds,34);
+    else if (visible.length===1){ this.gmap.setCenter(bounds.getCenter()); this.gmap.setZoom(11); }
   },
   /* 离线底图：用户自备、已合规审查的图片 + 它对应的经纬范围，按线性投影叠加。
      页面不内置任何图源，也不访问境外瓦片。 */
@@ -1849,8 +2399,7 @@ const MapLayer = {
   },
   /* ---- 渲染：离线示意图（无在线底图，纯相对位置） ---- */
   sync(){
-    /* 纯离线渲染，无在线底图，筛选态直接在渲染层隐藏，不改 this.points（避免把筛选写回存储） */
-    this.renderBuiltin();
+    if (this.engine==='google') this.renderGoogle(); else this.renderBuiltin();
   },
   renderBuiltin(){
     const el = document.getElementById('mapBuiltin');
@@ -1891,14 +2440,14 @@ const MapLayer = {
     }
     this._bp.forEach(function(o){
       const q = o.p, s = MapLayer.eff(q), c = s===0?'#f43f5e':s===2?'#f59e0b':'#22d3ee';
-      const ty = o.y - 16 - o.lane * 13;
-      g += '<g class="mpin" data-id="'+q.id+'" style="cursor:pointer">'+
+      const above = o.y - 16 - o.lane * 13;
+      const ty = above < TOP + 10 ? o.y + 20 + o.lane * 16 : above;
+      g += '<g class="mpin" data-id="'+esc(q.id)+'" style="cursor:pointer">'+
         '<circle cx="'+o.x+'" cy="'+o.y+'" r="11" fill="'+c+'" fill-opacity=".1">'+
           (s!==1?'<animate attributeName="r" values="10;15;10" dur="1.8s" repeatCount="indefinite"/><animate attributeName="fill-opacity" values=".18;0;.18" dur="1.8s" repeatCount="indefinite"/>':'')+
         '</circle>'+
         '<circle cx="'+o.x+'" cy="'+o.y+'" r="4.6" fill="'+c+'" style="filter:drop-shadow(0 0 6px '+c+')"/>'+
-        '<text x="'+o.x+'" y="'+ty+'" text-anchor="middle" style="font-size:10px;fill:#cfe6ff;font-weight:600">'+q.name+'</text>'+
-        '<text x="'+o.x+'" y="'+(ty+12)+'" text-anchor="middle" class="tk2">'+q.lat.toFixed(3)+', '+q.lng.toFixed(3)+'</text>'+
+        '<text x="'+o.x+'" y="'+ty+'" text-anchor="middle" style="font-size:10px;fill:#cfe6ff;font-weight:600">'+esc(q.name)+'</text>'+
       '</g>';
     });
     this.svgr.innerHTML = g;
@@ -1917,7 +2466,7 @@ const MapLayer = {
     if (!box) return;
     const items = [{k:'all', name:'全部'}].concat(Object.keys(SITE_TYPE).map(k=>({k, name:SITE_TYPE[k].name})));
     box.innerHTML = items.map(i=>
-      '<span class="chip'+(this.filter===i.k?' on':'')+'" data-f="'+i.k+'">'+i.name+'</span>').join('');
+      '<span class="chip'+(this.filter===i.k?' on':'')+'" role="button" tabindex="0" data-f="'+i.k+'">'+i.name+'</span>').join('');
     Array.prototype.forEach.call(box.querySelectorAll('.chip'), function(el){
       el.onclick = function(){ MapLayer.filter = el.getAttribute('data-f');
         MapLayer.renderLegend(); MapLayer.sync(); };
@@ -1947,8 +2496,8 @@ const MapLayer = {
     const st = {0:'异常',1:'正常',2:'降级'};
     const s = this.eff(p), r = this.rate(p);
     box.innerHTML =
-      '<h4><i style="background:'+c(s)+';box-shadow:0 0 7px '+c(s)+'"></i>'+p.name+'</h4>'+
-      '<div class="en">'+SITE_TYPE[p.type].name.toUpperCase()+' · '+p.id+'</div>'+
+      '<h4><i style="background:'+c(s)+';box-shadow:0 0 7px '+c(s)+'"></i>'+esc(p.name)+'</h4>'+
+      '<div class="en">'+esc((SITE_TYPE[p.type] || SITE_TYPE.campus).name.toUpperCase())+' · '+esc(p.id)+'</div>'+
       '<div class="as">'+
         '<div><span>网络</span><b>'+(p.assets.net||0)+'</b></div>'+
         '<div><span>服务器</span><b>'+(p.assets.srv||0)+'</b></div>'+
@@ -1957,7 +2506,7 @@ const MapLayer = {
       '<div class="kv"><span>'+(r!=null?'Zabbix 在线率':'区域健康')+'</span><b style="color:'+c(s)+'">'+
         (r!=null ? r+'% · '+st[s] : (this.health[p.id]!==undefined?this.health[p.id]+'%':st[p.status]))+'</b></div>'+
       '<div class="kv"><span>经纬度</span><b>'+p.lat.toFixed(4)+', '+p.lng.toFixed(4)+'</b></div>'+
-      '<div class="kv"><span>维护责任人</span><b>'+p.owner+'</b></div>'+
+      '<div class="kv"><span>维护责任人</span><b>'+esc(p.owner)+'</b></div>'+
       '<div class="foot">点击其它点位可切换 · 在「自定义 → 地图与数据」可编辑点位</div>';
     box.classList.add('show');
     const panel = document.getElementById('mapPanel').getBoundingClientRect();
@@ -1991,9 +2540,14 @@ const MapLayer = {
     pn.addEventListener('click', function(e){ if (e.target === pn) MapLayer.hidePop(); });
   },
   applyEngine(){
-    /* 只有一种渲染路径：离线画布。底图由 this.base 决定，无需切换 */
-    this.noteEngine();
-    this.renderBuiltin();
+    if (this.engine==='google') this.showBuiltin();
+    else if (this.googleKey) this.showGoogle();
+    else {
+      document.getElementById('drawer').classList.add('show');
+      document.body.classList.add('editing'); document.getElementById('btnCustom').classList.add('on');
+      const tab=document.querySelector('#drawer .tabs .t[data-tp="geo"]'); if (tab) tab.click();
+      const msg=document.getElementById('geoGoogleMsg'); if (msg) msg.innerHTML='<span style="color:var(--amber)">请先填写 Google Maps API Key</span>。';
+    }
   },
 
   /* ---- 数据注入（供二次开发调用） ---- */
@@ -2001,7 +2555,7 @@ const MapLayer = {
     this.points = arr.map(function(x){
       return { status:1, health:97, type:'campus', owner:'—', assets:{net:0,srv:0,sto:0}, ...x };
     });
-    this.save(); this.renderLegend(); this.renderBuiltin(); this.renderAssetBar();
+    this.save(); this.renderLegend(); this.sync(); this.renderAssetBar();
   },
   csv2points(txt){
     const lines = txt.trim().split(/\r?\n/).filter(Boolean);
@@ -2026,7 +2580,7 @@ const Mock = {
   rnd:(a,b,d=1)=> +(a + Math.random()*(b-a)).toFixed(d),
   walk:(v,amp,min,max)=> Math.min(max, Math.max(min, v + (Math.random()-0.45)*amp)),
   build(){
-    const T = ++this.t, d = {kpi:[],band:{},secScore:{},secTrend:{},secTop:[],secRisk:[],
+    const T = ++this.t, d = {kpi:[],band:{},secScore:{},secTrend:{},secTop:[],secRisk:[],flow:null,assetTraffic:null,
       link:[],sla:[],cap:[],zone:[],ticket:[],topo:{},alerts:[]};
 
     /* --- 全局 KPI（规模按实况：网络 318 · 服务器 30 · 存储 20）--- */
@@ -2117,6 +2671,49 @@ const Mock = {
       {n:'Eth1/30 Acc-11→F7', v:this.rnd(10,26,1), p:this.rnd(0,0.6,2), c1:C.lime,   c2:'#84cc16'},
       {n:'Eth1/09 Acc-08→F4', v:this.rnd(8,22,1),  p:this.rnd(0,1.1,2), c1:C.cyan,   c2:'#22d3ee'}
     ];
+    d.flow = {
+      source:'演示基线', totalSessions:Math.round(this.rnd(18000,26000,0)),
+      totalBytes:this.rnd(82,136,1)*1024*1024*1024, devices:6,
+      items:[
+        {src:'办公网',dst:'互联网出口',device:'FW-02',service:'HTTPS',sessions:6240,bytes:38.6*1024*1024*1024},
+        {src:'生产区',dst:'数据中心 IDC-1',device:'Core-01',service:'业务 API',sessions:4180,bytes:29.4*1024*1024*1024},
+        {src:'分支园区',dst:'总部 A 栋',device:'SD-WAN',service:'IPsec',sessions:2760,bytes:17.2*1024*1024*1024},
+        {src:'互联网',dst:'DMZ 区',device:'FTN-400F',service:'HTTPS',sessions:1950,bytes:8.7*1024*1024*1024}
+      ]
+    };
+    /* --- 资产分类流量 TOP（无实时分类字段时作为演示基线）--- */
+    d.assetTraffic = {
+      source:'演示基线', window:'最近 15 分钟', groups:{
+        server:[
+          {name:'SRV-ERP-01',bytes:this.rnd(42,55,1)*1024*1024*1024},
+          {name:'SRV-DB-03',bytes:this.rnd(34,45,1)*1024*1024*1024},
+          {name:'VM-HOST-07',bytes:this.rnd(25,36,1)*1024*1024*1024},
+          {name:'SRV-API-02',bytes:this.rnd(18,29,1)*1024*1024*1024},
+          {name:'SRV-BACKUP-01',bytes:this.rnd(12,23,1)*1024*1024*1024}
+        ],
+        storage:[
+          {name:'PowerStore-01',bytes:this.rnd(50,68,1)*1024*1024*1024},
+          {name:'Unity-02',bytes:this.rnd(36,49,1)*1024*1024*1024},
+          {name:'NAS-Archive',bytes:this.rnd(24,38,1)*1024*1024*1024},
+          {name:'Ceph-Cluster',bytes:this.rnd(18,30,1)*1024*1024*1024},
+          {name:'SAN-Backup',bytes:this.rnd(11,20,1)*1024*1024*1024}
+        ],
+        switch:[
+          {name:'Core-01',bytes:this.rnd(72,92,1)*1024*1024*1024},
+          {name:'Core-02',bytes:this.rnd(61,81,1)*1024*1024*1024},
+          {name:'AGG-01',bytes:this.rnd(44,62,1)*1024*1024*1024},
+          {name:'AGG-03',bytes:this.rnd(31,48,1)*1024*1024*1024},
+          {name:'Access-SW-07',bytes:this.rnd(18,32,1)*1024*1024*1024}
+        ],
+        ap:[
+          {name:'AP-HQ-3F-12',bytes:this.rnd(18,28,1)*1024*1024*1024},
+          {name:'AP-HQ-5F-03',bytes:this.rnd(14,23,1)*1024*1024*1024},
+          {name:'AP-IDC-LOBBY',bytes:this.rnd(10,18,1)*1024*1024*1024},
+          {name:'AP-BR-01-08',bytes:this.rnd(7,14,1)*1024*1024*1024},
+          {name:'AP-HQ-2F-21',bytes:this.rnd(5,11,1)*1024*1024*1024}
+        ]
+      }
+    };
 
     /* --- 拓扑 --- */
     d.topo = {
@@ -2294,8 +2891,8 @@ const $ = id => document.getElementById(id);
 
 function renderKPI(d){
   $('kpis').innerHTML = d.kpi.map(function(k){
-    return '<div class="kpi" style="--c:'+k.c+'"><div class="k">'+k.k+'</div>'+
-      '<div class="v num">'+k.v+'<small>'+k.u+'</small></div><div class="d">'+k.d+'</div></div>';
+    return '<div class="kpi" style="--c:'+k.c+'"><div class="k">'+esc(k.k)+'</div>'+
+      '<div class="v num">'+esc(k.v)+'<small>'+esc(k.u)+'</small></div><div class="d">'+esc(k.d)+'</div></div>';
   }).join('');
 }
 function renderSecScore(s){
@@ -2324,16 +2921,16 @@ function renderSecTrend(t){
 }
 function rowsHTML(arr, unit){
   return arr.map(function(x){
-    return '<div class="row"><span class="nm" title="'+x.n+'">'+x.n+'</span>'+
+    return '<div class="row"><span class="nm" title="'+esc(x.n)+'">'+esc(x.n)+'</span>'+
       '<span class="tr"><span class="fl" style="--c1:'+x.c1+';--c2:'+x.c2+';width:'+Math.min(100,x.v)+'%"></span></span>'+
-      '<span class="vl">'+x.v+(unit?'<i>'+unit+'</i>':'')+'</span></div>';
+      '<span class="vl">'+esc(x.v)+(unit?'<i>'+esc(unit)+'</i>':'')+'</span></div>';
   }).join('');
 }
 function renderList(id, arr){
   $(id).innerHTML = arr.map(function(x){
     return '<div class="li" style="--c:'+x.c+'"><i class="tag"></i>'+
-      '<div style="min-width:0"><div class="tt">'+x.t+'</div><div class="ss">'+x.s+'</div></div>'+
-      '<div class="vv" style="font-size:12px">'+x.v+'</div></div>';
+      '<div style="min-width:0"><div class="tt">'+esc(x.t)+'</div><div class="ss">'+esc(x.s)+'</div></div>'+
+      '<div class="vv" style="font-size:12px">'+esc(x.v)+'</div></div>';
   }).join('');
 }
 function renderBand(b){
@@ -2350,11 +2947,95 @@ function renderLink(l){
   $('linkRows').innerHTML = l.map(function(x){
     const pc = x.p>1.5?C.red:x.p>0.8?C.amber:'inherit';
     return '<div class="row" style="grid-template-columns:148px 1fr 106px">'+
-      '<span class="nm" title="'+x.n+'">'+x.n+'</span>'+
+      '<span class="nm" title="'+esc(x.n)+'">'+esc(x.n)+'</span>'+
       '<span class="tr"><span class="fl" style="--c1:'+x.c1+';--c2:'+x.c2+';width:'+(x.v/mx*100).toFixed(1)+'%"></span></span>'+
       '<span class="vl" style="color:'+pc+';font-size:11px">'+x.p.toFixed(2)+'<i>%丢包</i></span></div>';
   }).join('');
 }
+function fmtBytes(v){
+  const n=Number(v)||0, u=['B','KB','MB','GB','TB'];
+  if (!n) return '0 B';
+  const i=Math.min(u.length-1,Math.floor(Math.log(n)/Math.log(1024)));
+  return (n/Math.pow(1024,i)).toFixed(i<2?0:1)+' '+u[i];
+}
+function renderFlow(f){
+  f = f || {source:'无数据',totalSessions:0,totalBytes:0,devices:0,items:[]};
+  $('flowSessions').textContent = Number(f.totalSessions||0).toLocaleString();
+  $('flowBytes').textContent = fmtBytes(f.totalBytes||0);
+  $('flowDevices').textContent = Number(f.devices||0).toLocaleString();
+  $('flowSource').textContent = f.source || '未知来源';
+  const items=(f.items||[]).slice(0,4);
+  const mx=Math.max.apply(null,items.map(x=>Number(x.bytes)||Number(x.sessions)||0).concat([1]));
+  $('flowRows').innerHTML = items.map(function(x){
+    const weight=Number(x.bytes)||Number(x.sessions)||0;
+    const val=(x.bytes?fmtBytes(x.bytes):'')+(x.bytes&&x.sessions?' · ':'')+(x.sessions?Number(x.sessions).toLocaleString()+' 会话':'');
+    const tip=(x.device||'未标设备')+' · '+(x.service||'—');
+    return '<div class="flow-row" title="'+esc(tip)+'">'+
+      '<span class="end">'+esc(x.src)+'</span><span class="arrow">→</span><span class="end">'+esc(x.dst)+'</span>'+
+      '<span class="bar"><i style="width:'+Math.max(3,weight/mx*100).toFixed(1)+'%"></i></span>'+
+      '<span class="val">'+esc(val)+'</span></div>';
+  }).join('') || '<div class="hint">暂无可识别的会话流向</div>';
+}
+
+/* 从会话 / NetFlow 字段中自动识别资产类型并分别聚合 TOP。 */
+const AssetTraffic={
+  kind:localStorage.getItem('netcockpit.asset-top.kind')||'server',base:null,flow:null,
+  labels:{server:'服务器',storage:'存储',switch:'交换机',ap:'AP'},
+  rules:{
+    server:/server|srv[-_]|vm[-_ ]?host|esxi|poweredge|r7\d\d|服务器|主机/i,
+    storage:/storage|stor[-_]|san[-_]|nas[-_]|array|powerstore|unity|netapp|ceph|存储|磁盘阵列/i,
+    switch:/switch|sw[-_]|core[-_]|agg[-_]|access[-_]|nexus|n9k|c9\d\d\d|交换机|核心交换|汇聚交换|接入交换/i,
+    ap:/(^|[-_ ])ap[-_ ]|wireless|wlan|wifi|aironet|无线接入|无线 ap/i
+  },
+  classify(x){
+    const s=[x.assetType,x.assetName,x.device,x.src,x.dst].filter(Boolean).join(' ');
+    return ['server','storage','switch','ap'].find(k=>this.rules[k].test(s))||'';
+  },
+  name(x,kind){
+    const vals=[x.assetName,x.device,x.src,x.dst].map(v=>String(v||'')).filter(v=>v&&v!=='未标设备'&&v!=='未知源'&&v!=='未知目的');
+    return vals.find(v=>this.rules[kind].test(v))||vals[0]||'未命名资产';
+  },
+  fromFlow(flow){
+    if(!flow||!flow._real)return null;
+    const maps={server:{},storage:{},switch:{},ap:{}},rows=flow.allItems||flow.items||[];
+    rows.forEach(x=>{
+      const kind=this.classify(x),bytes=Number(x.bytes)||0;if(!kind||!bytes)return;
+      const name=this.name(x,kind);maps[kind][name]=(maps[kind][name]||0)+bytes;
+    });
+    const groups={};let count=0;
+    Object.keys(maps).forEach(k=>{groups[k]=Object.keys(maps[k]).map(name=>({name:name,bytes:maps[k][name]})).sort((a,b)=>b.bytes-a.bytes).slice(0,5);count+=groups[k].length;});
+    return count?{source:'实时自动归组',window:'采集窗口',groups:groups}:null;
+  },
+  render(base,flow){
+    this.base=base||this.base;this.flow=flow||this.flow;
+    const live=this.fromFlow(this.flow),kind=this.kind in this.labels?this.kind:'server';
+    const liveRows=live&&live.groups[kind]||[],rows=(liveRows.length?liveRows:(this.base&&this.base.groups[kind])||[]).slice().sort((a,b)=>(Number(b.bytes)||0)-(Number(a.bytes)||0)).slice(0,5);
+    const isLive=!!liveRows.length,source=isLive?((this.flow&&this.flow.source)||'实时自动归组'):'演示基线';
+    document.querySelectorAll('#assetTopTabs .asset-top-tab').forEach(x=>x.classList.toggle('on',x.dataset.kind===kind));
+    $('assetTopSource').textContent=isLive?'实时识别':'演示基线';
+    $('assetTopHint').textContent=this.labels[kind]+' · '+(isLive?'按采集窗口累计流量':'演示数据，接入后自动替换');
+    const total=rows.reduce((n,x)=>n+(Number(x.bytes)||0),0);$('assetTopTotal').textContent='TOP '+rows.length+' · '+fmtBytes(total);
+    const mx=Math.max.apply(null,rows.map(x=>Number(x.bytes)||0).concat([1]));
+    $('assetTopRows').innerHTML=rows.map(function(x,i){
+      return '<div class="asset-top-row" title="'+esc(source)+' · '+esc(x.name)+'">'+
+        '<span class="rank">'+(i+1)+'</span><span class="asset-name">'+esc(x.name)+'</span>'+
+        '<span class="asset-bar"><i style="width:'+Math.max(3,(Number(x.bytes)||0)/mx*100).toFixed(1)+'%"></i></span>'+
+        '<span class="asset-val">'+fmtBytes(x.bytes)+'</span></div>';
+    }).join('')||'<div class="hint">该组暂未识别到可排序的流量数据</div>';
+  },
+  select(kind){if(!(kind in this.labels))return;this.kind=kind;localStorage.setItem('netcockpit.asset-top.kind',kind);this.render(this.base,this.flow);TextEditor.refresh();}
+};
+$('assetTopTabs').onclick=function(e){const t=e.target.closest&&e.target.closest('.asset-top-tab');if(t)AssetTraffic.select(t.dataset.kind);};
+
+let flowPanelMode=localStorage.getItem('netcockpit.flow.view')||'flow';
+function applyFlowPanel(){
+  const flow=flowPanelMode==='flow';
+  $('flowView').hidden=!flow; $('ifView').hidden=flow;
+  $('flowViewBtn').classList.toggle('on',flow); $('ifViewBtn').classList.toggle('on',!flow);
+}
+$('flowViewBtn').onclick=function(){ flowPanelMode='flow';localStorage.setItem('netcockpit.flow.view',flowPanelMode);applyFlowPanel(); };
+$('ifViewBtn').onclick=function(){ flowPanelMode='interfaces';localStorage.setItem('netcockpit.flow.view',flowPanelMode);applyFlowPanel(); };
+applyFlowPanel();
 function renderTopo(t){
   const nodes = t.nodes, map = {};
   nodes.forEach(n=>map[n.id]=n);
@@ -2393,20 +3074,20 @@ function renderSla(s){
   const mx = Math.max.apply(null, s.map(x=>x.v));
   $('sla').innerHTML = s.map(function(x){
     return '<div class="li" style="--c:'+(x.bad?C.red:x.c)+';grid-template-columns:1fr 96px 48px">'+
-      '<div style="min-width:0"><div class="tt">'+x.n+'</div>'+
+       '<div style="min-width:0"><div class="tt">'+esc(x.n)+'</div>'+
         '<div class="tr" style="height:5px;margin-top:5px"><span class="fl" style="--c1:'+x.c+';--c2:'+x.c+';width:'+(x.v/mx*100).toFixed(1)+'%"></span></div></div>'+
-      '<div class="ss" style="text-align:right">'+x.s+'</div>'+
+       '<div class="ss" style="text-align:right">'+esc(x.s)+'</div>'+
       '<div class="vv" style="color:'+(x.bad?C.red:x.c)+';font-size:12.5px">'+x.v+'%</div></div>';
   }).join('');
 }
 function renderCap(c){
   $('cap').innerHTML = c.map(function(x){
     const col = x.v>80?C.red:x.v>65?C.amber:x.v>45?C.cyan:C.green;
-    return '<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px">'+
-      miniRing(x.v, col, 50)+
+    return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:6px">'+
+      miniRing(x.v, col, 42)+
       '<div style="flex:1;min-width:0">'+
-        '<div style="display:flex;justify-content:space-between"><span style="color:var(--txt-2)">'+x.n+'</span>'+
-        '<b style="color:'+(x.v>80?C.red:'var(--txt)')+'">'+x.v+x.u+'</b></div>'+
+        '<div style="display:flex;justify-content:space-between"><span style="color:var(--txt-2)">'+esc(x.n)+'</span>'+
+        '<b style="color:'+(x.v>80?C.red:'var(--txt)')+'">'+esc(x.v)+esc(x.u)+'</b></div>'+
         '<div class="tr" style="height:5px;margin-top:5px"><span class="fl" style="--c1:'+x.c+';--c2:'+x.c+';width:'+x.v+'%"></span></div>'+
       '</div></div>';
   }).join('');
@@ -2418,16 +3099,33 @@ function renderAlerts(a){
   $('stream').innerHTML = a.map(function(x){
     const s = SEV[x.lv] || SEV.P4;
     return '<div class="sline" style="border-left:2px solid '+s.color+';padding-left:9px">'+
-      '<span class="tm">'+x.tm+'</span>'+
-      '<span class="lv" style="color:'+s.color+';border-color:'+s.color+'66;background:'+s.color+'1a">'+x.lv+' '+s.name+'</span>'+
-      '<span class="msg">'+x.msg+' <em style="color:#5d7a9c;font-style:normal;font-size:11px">· '+x.g+'</em></span>'+
-      '<span class="ip">'+x.ip+'</span></div>';
+      '<span class="tm">'+esc(x.tm)+'</span>'+
+      '<span class="lv" style="color:'+s.color+';border-color:'+s.color+'66;background:'+s.color+'1a">'+esc(x.lv)+' '+esc(s.name)+'</span>'+
+      '<span class="msg">'+x.msg+' <em style="color:#5d7a9c;font-style:normal;font-size:11px">· '+esc(x.g)+'</em></span>'+
+      '<span class="ip">'+esc(x.ip)+'</span></div>';
   }).join('');
   $('sevLegend').innerHTML = Object.keys(SEV).map(function(k){
     const s = SEV[k];
     return '<span class="sev-chip" style="--c:'+s.color+'"><i></i>'+k+' '+s.name+' <b>'+cnt[k]+'</b></span>';
   }).join('') + '<span style="margin-left:auto;font-size:10.5px;color:#5d7a9c;letter-spacing:1px">'
     + a.length + ' 条滚动窗口 · 全量口径见顶部</span>';
+}
+function renderExecSummary(d){
+  const health=Number(d&&d.kpi&&d.kpi[1]&&String(d.kpi[1].v).replace(/,/g,''))||0;
+  const sla=Number(d&&d.kpi&&d.kpi[5]&&String(d.kpi[5].v).replace(/,/g,''))||0;
+  const p1=(d.alerts||[]).filter(function(x){return x.lv==='P1';}).length;
+  const worst=(d.sites||[]).slice().sort(function(a,b){return a.health-b.health;})[0];
+  let state='区域整体稳定',grade='区域网络健康 A',color='var(--green)';
+  if(p1>=3||health<94||sla<99.8){state='需要关注';grade='存在需优先处置事项';color='var(--red)';}
+  else if(p1||health<97||sla<99.95){state='轻度波动';grade='业务总体不受影响';color='var(--amber)';}
+  $('execState').textContent=state;$('execGrade').textContent=grade;
+  $('execDot').style.background=color;$('execDot').style.color=color;
+  $('execHealth').textContent=(health?health.toFixed(1):'--')+'%';
+  $('execSla').textContent=(sla?sla.toFixed(3):'--')+'%';$('execP1').textContent=p1+' 项';
+  let decision='区域内暂无影响业务的重大异常';
+  if(p1&&d.secRisk&&d.secRisk[0])decision='优先处置：'+String(d.secRisk[0].t||'P1 紧急事项');
+  else if(worst&&worst.health<94)decision='关注站点：'+worst.name+' · 健康度 '+worst.health+'%';
+  $('execDecision').textContent=decision;
 }
 function renderSevMap(){
   $('sevMap').innerHTML =
@@ -2443,53 +3141,94 @@ function renderSevMap(){
 /* ==========================================================================
  *  4. 轮询循环
  * ======================================================================== */
-let paused = false;
+let paused = false, tickInFlight = false, tickQueued = false;
 async function tick(force){
   if (paused && !force) return;
-  const d = await ZabbixAdapter.fetch();
-  /* FortiAnalyzer 只覆盖安全相关字段，其余仍走上面那份快照 */
-  const faz = FazAdapter.cfg.on ? await FazAdapter.fetch() : null;
-  if (faz){
-    Object.assign(d, {
-      secScore : faz.secScore, secTrend : faz.secTrend,
-      secTop   : faz.secTop,   secRisk  : faz.secRisk
-    });
-    const k = d.kpi.slice();
-    k[3] = { k:k[3].k, v:faz.kpi.total.toLocaleString(), u:'次/' + FazAdapter.cfg.win + 'min',
-             c:C.purple, d:'拦截率 ' + faz.kpi.rate + '% · 源 ' + faz.kpi.srcCnt + ' 个' };
-    d.kpi = k;
+  /* 正在输入时暂停自动刷新，避免实时数据替换光标所在的文字。 */
+  if (typeof TextEditor!=='undefined' && TextEditor.editing && !force) return;
+  if (tickInFlight){ tickQueued = tickQueued || !!force; return; }
+  tickInFlight = true;
+  try{
+    const result = await Promise.all([
+      ZabbixAdapter.fetch(),
+      FazAdapter.cfg.on ? FazAdapter.fetch() : Promise.resolve(null),
+      SessionAdapter.cfg.on ? SessionAdapter.fetch() : Promise.resolve(null),
+      AutoSourceAdapter.cfg.on ? AutoSourceAdapter.fetch() : Promise.resolve(null)
+    ]);
+    const d=result[0], faz=result[1], sessionFlow=result[2], autoRoute=result[3];
+    /* FortiAnalyzer 覆盖安全字段，并可作为会话流向的第二优先级数据源。 */
+    if (faz){
+      Object.assign(d, {
+        secScore : faz.secScore, secTrend : faz.secTrend,
+        secTop   : faz.secTop,   secRisk  : faz.secRisk
+      });
+      const k = d.kpi.slice();
+      k[3] = { k:k[3].k, v:faz.kpi.total.toLocaleString(), u:'次/' + FazAdapter.cfg.win + 'min',
+               c:C.purple, d:'拦截率 ' + faz.kpi.rate + '% · 源 ' + faz.kpi.srcCnt + ' 个' };
+      d.kpi = k;
+      if (faz.flow) d.flow = faz.flow;
+    }
+    /* 独立会话 REST 接口优先级最高。 */
+    if (sessionFlow) d.flow = sessionFlow;
+    /* 统一入口只覆盖被高置信度识别出的对应通道。专用会话接口仍保留最高优先级。 */
+    if(autoRoute){
+      if(autoRoute.flow && !sessionFlow)d.flow=autoRoute.flow;
+      if(autoRoute.alerts&&autoRoute.alerts.length)d.alerts=autoRoute.alerts;
+    }
+    renderKPI(d); renderSecScore(d.secScore); renderSecTrend(d.secTrend);
+    renderSecTop(d.secTop); renderList('secRisk', d.secRisk);
+    renderBand(d.band); renderTopo(d.topo); renderLink(d.link); renderFlow(d.flow); AssetTraffic.render(d.assetTraffic,d.flow);
+    renderSla(d.sla); renderCap(d.cap); renderList('ticket', d.ticket);
+    renderAlerts(d.alerts);
+    renderExecSummary(d);
+    CustomModules.renderAll(d,autoRoute||AutoSourceAdapter.last||DataRouter.latest);
+    if (MapLayer.points.length) MapLayer.sync();
+    MapLayer.renderAssetBar();
+    $('lastSync').textContent = fmtTime(ZabbixAdapter.lastSync);
+    const p1 = d.alerts.filter(x=>x.lv==='P1').length;
+    const err = ZabbixAdapter.error;
+    const fazErr = FazAdapter.cfg.on ? (FazAdapter.errors[0] || '') : '';
+    const sessErr = SessionAdapter.cfg.on ? (SessionAdapter.errors[0] || '') : '';
+    const autoErr = AutoSourceAdapter.cfg.on ? (AutoSourceAdapter.errors[0] || '') : '';
+    $('srcDot').className = 'dot ' + (err ? 'bad' : (fazErr||sessErr||autoErr) ? 'warn' : p1>1 ? 'bad' : p1 ? 'warn' : '');
+    $('srcDot').title = err || fazErr || sessErr || autoErr || '数据源正常';
+    let hostTxt = err ? '数据源异常' : (ZabbixAdapter.live ? 'Zabbix 实时' : '演示基线');
+    if (faz) hostTxt += ' · FortiAnalyzer 实时';
+    else if (fazErr) hostTxt += ' · FortiAnalyzer 降级';
+    if (sessionFlow) hostTxt += ' · 会话流实时';
+    else if (sessErr) hostTxt += ' · 会话流降级';
+    if (autoRoute) hostTxt += ' · 自动分流 '+autoRoute.kind;
+    else if (autoErr) hostTxt += ' · 自动分流待检查';
+    $('srcHost').textContent = hostTxt;
+    $('srcHost').title = (err || fazErr || sessErr || autoErr) ? [err, fazErr, sessErr, autoErr].filter(Boolean).join('｜') : '';
+  }catch(e){
+    $('srcDot').className = 'dot bad';
+    $('srcHost').textContent = '刷新异常';
+    $('srcHost').title = e && e.message ? e.message : String(e);
+  }finally{
+    if (typeof TextEditor!=='undefined') TextEditor.refresh();
+    tickInFlight = false;
+    if (tickQueued){ tickQueued = false; setTimeout(function(){ tick(true); }, 0); }
   }
-  renderKPI(d); renderSecScore(d.secScore); renderSecTrend(d.secTrend);
-  renderSecTop(d.secTop); renderList('secRisk', d.secRisk);
-  renderBand(d.band); renderTopo(d.topo); renderLink(d.link);
-  renderSla(d.sla); renderCap(d.cap); renderList('ticket', d.ticket);
-  renderAlerts(d.alerts);
-  if (MapLayer.points.length){ MapLayer.renderBuiltin(); MapLayer.sync(); }
-  MapLayer.renderAssetBar();
-  $('lastSync').textContent = fmtTime(ZabbixAdapter.lastSync);
-  const p1 = d.alerts.filter(x=>x.lv==='P1').length;
-  const err = ZabbixAdapter.error;
-  const fazErr = FazAdapter.cfg.on ? (FazAdapter.errors[0] || '') : '';
-  $('srcDot').className = 'dot ' + (err ? 'bad' : fazErr ? 'warn' : p1>1 ? 'bad' : p1 ? 'warn' : '');
-  $('srcDot').title = err || fazErr || '数据源正常';
-  let hostTxt = err ? '数据源异常' : (ZabbixAdapter.live ? 'Zabbix 实时' : '演示基线');
-  if (faz) hostTxt += ' · FortiAnalyzer 实时';
-  else if (fazErr) hostTxt += ' · FortiAnalyzer 降级';
-  $('srcHost').textContent = hostTxt;
-  if (err || fazErr) $('srcHost').title = [err, fazErr].filter(Boolean).join('｜');
 }
 /* ==========================================================================
  *  视图模式：单页集成 / 分屏预览（多页）—— 可切换预览，便于现场拍板
  * ======================================================================== */
 const VIEW_KEY = 'netcockpit.view', PAGE_KEY = 'netcockpit.page';
 let viewMode = localStorage.getItem(VIEW_KEY) || 'single';   // single | paged
-let viewPage = localStorage.getItem(PAGE_KEY) || 'net';      // net | sec | cap
+let viewPage = localStorage.getItem(PAGE_KEY) || 'exec';     // exec | net | sec
+if(viewPage==='cap')viewPage='exec';                         // 兼容旧版“业务容量”页
+if(!localStorage.getItem('netcockpit.leader-view.v1')){
+  viewMode='paged';viewPage='exec';
+  localStorage.setItem(VIEW_KEY,viewMode);localStorage.setItem(PAGE_KEY,viewPage);
+  localStorage.setItem('netcockpit.leader-view.v1','1');
+}
 function applyView(){
   document.body.dataset.view = viewMode;
   document.body.dataset.page = viewPage;
   const bv = document.getElementById('btnView');
   if (bv){
-    bv.textContent = viewMode === 'paged' ? '▦ 分屏' : '▦ 单页';
+    bv.textContent = viewMode === 'paged' ? '▦ 专题' : '▦ 全景';
     bv.classList.toggle('on', viewMode === 'paged');
   }
   document.querySelectorAll('#pagebar .ptab').forEach(function(t){
@@ -2507,16 +3246,22 @@ document.getElementById('btnView').onclick = function(){
   setView(viewMode === 'paged' ? 'single' : 'paged');
 };
 document.querySelectorAll('#pagebar .ptab').forEach(function(t){
+  if(t.id==='btnDual')return;
   t.onclick = function(){ setPage(t.dataset.page); };
 });
+$('btnDual').onclick=function(){
+  setView('paged');setPage('net');
+  const u=new URL(location.href);u.searchParams.set('view','paged');u.searchParams.set('page','sec');u.searchParams.set('screen','security');
+  window.open(u.toString(),'netcockpit-security','width=1920,height=1080');
+};
 applyView();
 
 function renderSecTop(t){
   const mx = Math.max.apply(null, t.map(x=>x.v));
   $('secTop').innerHTML = rowsHTML(t.map(x=>({n:x.n, v:+(x.v/mx*100).toFixed(0), c1:x.c1, c2:x.c2})), '%');
 }
-tick(true);
-setInterval(function(){ tick(); }, 8000);
+setInterval(function(){ if (!document.hidden) tick(); }, 8000);
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) tick(true); });
 
 $('btnPause').onclick = function(e){
   paused = !paused;
@@ -2535,6 +3280,166 @@ function persist(){
   localStorage.setItem(KEY+'.hidden', JSON.stringify(Array.from(hidden)));
   localStorage.setItem(KEY+'.order', JSON.stringify(order));
 }
+
+/* 全局文字与字体编辑：对展示区的文本节点生成稳定键，动态刷新后重新应用覆盖值。 */
+const TextEditor={
+  key:'netcockpit.text-overrides.v1',selectedKey:'',selectedEl:null,editing:null,before:'',
+  overrides:(function(){try{const x=JSON.parse(localStorage.getItem('netcockpit.text-overrides.v1')||'{}');return x&&typeof x==='object'?x:{};}catch(e){return {};}})(),
+  scopes(){return ['.brand','#kpis','#pagebar','#execSummary','#body','#alertbar'].map(function(s){return document.querySelector(s);}).filter(Boolean);},
+  save(){try{localStorage.setItem(this.key,JSON.stringify(this.overrides));}catch(e){}},
+  root(node,scope){const el=node.parentElement,mod=el&&el.closest('[data-mod]');return mod&&scope.contains(mod)?mod:scope;},
+  nodeKey(node,scope){
+    const root=this.root(node,scope),parts=[];let cur=node;
+    while(cur&&cur!==root){const p=cur.parentNode;if(!p)break;parts.unshift(Array.prototype.indexOf.call(p.childNodes,cur));cur=p;}
+    const base=root.dataset&&root.dataset.mod?'mod:'+root.dataset.mod:'scope:'+(root.id||root.className||root.tagName);
+    return base+'/'+parts.join('.');
+  },
+  apply(span){
+    const o=this.overrides[span.dataset.textKey];
+    if(o&&Object.prototype.hasOwnProperty.call(o,'text'))span.textContent=o.text;
+    else if(span.dataset.liveText!==undefined)span.textContent=span.dataset.liveText;
+    span.style.fontSize=o&&o.size?o.size+'px':'';
+    span.style.color=o&&o.color?o.color:'';
+    span.style.fontWeight=o&&o.weight?o.weight:'';
+    span.classList.toggle('text-selected',span.dataset.textKey===this.selectedKey);
+  },
+  refresh(){
+    const self=this;
+    this.scopes().forEach(function(scope){
+      const walker=document.createTreeWalker(scope,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+        if(!n.nodeValue||!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;
+        const p=n.parentElement;if(!p)return NodeFilter.FILTER_REJECT;
+        if(p.closest('.txt-editable,svg,script,style,textarea,input,select,option,#drawer,.grip'))return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }});
+      const nodes=[];let n;while((n=walker.nextNode()))nodes.push(n);
+      nodes.forEach(function(node){
+        const key=self.nodeKey(node,scope),span=document.createElement('span');
+        span.className='txt-editable';span.dataset.textKey=key;span.dataset.liveText=node.nodeValue;
+        span.textContent=node.nodeValue;span.spellcheck=false;node.parentNode.replaceChild(span,node);self.apply(span);
+      });
+    });
+    document.querySelectorAll('.txt-editable').forEach(function(span){self.apply(span);});
+    if(this.selectedKey){this.selectedEl=document.querySelector('.txt-editable[data-text-key="'+CSS.escape(this.selectedKey)+'"]');}
+    const count=document.querySelectorAll('.txt-editable').length;
+    if($('txtMsg')&&!this.editing)$('txtMsg').textContent='当前可编辑 '+count+' 处文字；手工覆盖优先于实时渲染，可随时恢复。';
+  },
+  rgbHex(c){
+    if(!c||c[0]==='#')return c||'';const m=c.match(/\d+/g);if(!m||m.length<3)return '';
+    return '#'+m.slice(0,3).map(function(x){return Number(x).toString(16).padStart(2,'0');}).join('');
+  },
+  select(span){
+    document.querySelectorAll('.txt-editable.text-selected').forEach(function(x){x.classList.remove('text-selected');});
+    this.selectedEl=span;this.selectedKey=span.dataset.textKey;span.classList.add('text-selected');
+    const o=this.overrides[this.selectedKey]||{},cs=getComputedStyle(span);
+    $('txtSize').value=o.size||Math.round(parseFloat(cs.fontSize))||'';$('txtColor').value=o.color||'';$('txtWeight').value=o.weight||'';
+    $('txtSelected').innerHTML='已选：<b style="color:var(--cyan)">'+esc(span.textContent.trim().slice(0,42)||'空文字')+'</b>';
+  },
+  start(span){
+    this.select(span);this.editing=span;this.before=span.textContent;span.contentEditable='true';span.focus();
+    const r=document.createRange();r.selectNodeContents(span);const s=getSelection();s.removeAllRanges();s.addRange(r);
+    $('txtMsg').textContent='正在编辑文字：Enter 保存 · Esc 取消';
+  },
+  finish(saveChange){
+    const span=this.editing;if(!span)return;span.contentEditable='false';
+    if(saveChange){
+      const text=span.textContent.trim(),o=Object.assign({},this.overrides[this.selectedKey]||{});
+      if(text&&text!==span.dataset.liveText.trim())o.text=text;else delete o.text;
+      if(Object.keys(o).length)this.overrides[this.selectedKey]=o;else delete this.overrides[this.selectedKey];
+      this.save();this.apply(span);$('txtMsg').innerHTML='<span style="color:var(--green)">✓ 文字已保存</span>，刷新后仍会保留。';
+    }else{span.textContent=this.before;this.apply(span);$('txtMsg').textContent='已取消本次修改。';}
+    this.editing=null;
+  },
+  applyStyle(){
+    if(!this.selectedKey||!this.selectedEl){$('txtMsg').textContent='请先双击选择大屏中的一处文字。';return;}
+    const o=Object.assign({},this.overrides[this.selectedKey]||{}),size=Number($('txtSize').value),color=($('txtColor').value||'').trim(),weight=$('txtWeight').value;
+    if(size>=8&&size<=72)o.size=size;else delete o.size;
+    if(color&&CSS.supports('color',color))o.color=color;else delete o.color;
+    if(weight)o.weight=weight;else delete o.weight;
+    if(this.selectedEl.textContent.trim()!==this.selectedEl.dataset.liveText.trim())o.text=this.selectedEl.textContent.trim();
+    if(Object.keys(o).length)this.overrides[this.selectedKey]=o;else delete this.overrides[this.selectedKey];
+    this.save();this.apply(this.selectedEl);$('txtMsg').innerHTML='<span style="color:var(--green)">✓ 字体样式已应用</span>';
+  },
+  restoreOne(){
+    if(!this.selectedKey||!this.selectedEl){$('txtMsg').textContent='请先双击选择需要恢复的文字。';return;}
+    delete this.overrides[this.selectedKey];this.save();this.apply(this.selectedEl);$('txtSize').value='';$('txtColor').value='';$('txtWeight').value='';
+    $('txtMsg').innerHTML='<span style="color:var(--green)">✓ 已恢复该处实时文字与默认字体</span>';
+  },
+  restoreAll(){
+    this.overrides={};this.save();document.querySelectorAll('.txt-editable').forEach(function(x){x.textContent=x.dataset.liveText;x.style.fontSize='';x.style.color='';x.style.fontWeight='';});
+    $('txtMsg').innerHTML='<span style="color:var(--green)">✓ 已恢复全部实时文字与默认字体</span>';
+  },
+  export(){
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(this.overrides,null,2)],{type:'application/json'}));a.download='netcockpit-text-overrides.json';a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+  }
+};
+
+/* 可新增/编辑的用户模块。定义与布局只保存在本机，数据来自已经归一化的通道。 */
+const CustomModules={
+  key:'netcockpit.custom-modules.v1',selected:'',lastData:null,lastRoute:null,
+  defs:(function(){try{const a=JSON.parse(localStorage.getItem('netcockpit.custom-modules.v1')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}})(),
+  save(){try{localStorage.setItem(this.key,JSON.stringify(this.defs));}catch(e){}},
+  column(d){return d.col==='left'?$('colL'):d.col==='right'?$('colR'):$('mid');},
+  page(d){return d.source==='alerts'?'sec':d.source==='metrics'?'net':'net';},
+  bindPanel(p){
+    if(p.dataset.boundCustom==='1')return;p.dataset.boundCustom='1';p.draggable=true;
+    p.addEventListener('dragstart',function(e){if(e.target.closest&&e.target.closest('.txt-editable')){e.preventDefault();return;}dragEl=p;p.classList.add('drag-h');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',p.dataset.mod);});
+    p.addEventListener('dragend',function(){p.classList.remove('drag-h');dragEl=null;persist();});
+    p.addEventListener('dragover',function(e){e.preventDefault();if(p!==dragEl)p.classList.add('dragover');});
+    p.addEventListener('dragleave',function(){p.classList.remove('dragover');});
+    p.addEventListener('drop',function(e){e.preventDefault();p.classList.remove('dragover');if(!dragEl||dragEl===p)return;const col=p.closest('.col, #mid');col.insertBefore(dragEl,p);const d=CustomModules.defs.find(x=>x.id===dragEl.dataset.mod);if(d){d.col=col.id==='colL'?'left':col.id==='colR'?'right':'mid';CustomModules.save();}Array.prototype.slice.call(col.children).forEach(function(el,i){if(el.dataset.mod)order[el.dataset.mod]=i;});persist();});
+    const title=p.querySelector('.t');
+    title.addEventListener('dblclick',function(){if(!document.body.classList.contains('editing'))return;title.contentEditable='true';title.focus();const r=document.createRange();r.selectNodeContents(title);const s=getSelection();s.removeAllRanges();s.addRange(r);});
+    title.addEventListener('blur',function(){if(title.contentEditable!=='true')return;title.contentEditable='false';const d=CustomModules.defs.find(x=>x.id===p.dataset.mod),v=title.textContent.trim();if(d&&v){d.title=v;p.dataset.name=v;CustomModules.save();CustomModules.fill(d.id);renderModList();}});
+    title.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();title.blur();}});
+  },
+  ensure(){
+    document.querySelectorAll('.panel[data-custom="1"]').forEach(function(p){if(!CustomModules.defs.some(d=>d.id===p.dataset.mod))p.remove();});
+    this.defs.forEach(function(d){
+      let p=document.querySelector('[data-mod="'+d.id+'"]');
+      if(!p){p=document.createElement('div');p.className='panel';p.dataset.mod=d.id;p.dataset.custom='1';p.style.cssText='flex:0 0 176px;min-height:120px';p.innerHTML='<div class="p-h"><i class="bar"></i><span class="t"></span><span class="en">CUSTOM</span><span class="grip">⠿</span></div><div class="p-b custom-body"></div>';}
+      p.dataset.name=d.title;p.dataset.page=CustomModules.page(d);p.querySelector('.t').textContent=d.title;
+      const col=CustomModules.column(d);if(p.parentElement!==col)col.appendChild(p);
+      CustomModules.bindPanel(p);
+    });
+  },
+  fill(id){
+    const d=this.defs.find(x=>x.id===id);if(!d)return;
+    this.selected=id;$('cmTitle').value=d.title;$('cmType').value=d.type;$('cmSource').value=d.source;$('cmCol').value=d.col;$('cmField').value=d.field||'';
+    $('cmMsg').innerHTML='正在编辑 <b style="color:var(--cyan)">'+esc(d.title)+'</b>';
+  },
+  read(){return {title:($('cmTitle').value||'').trim()||'自定义模块',type:$('cmType').value,source:$('cmSource').value,col:$('cmCol').value,field:($('cmField').value||'').trim()};},
+  add(){const d=this.read();d.id='custom-'+Date.now().toString(36);this.defs.push(d);this.selected=d.id;this.save();this.ensure();applyLayout();renderModList();this.fill(d.id);this.renderAll(this.lastData,this.lastRoute);},
+  update(){const d=this.defs.find(x=>x.id===this.selected);if(!d){$('cmMsg').textContent='请先在模块列表点击“编辑”，或新增一个模块。';return;}Object.assign(d,this.read());this.save();this.ensure();applyLayout();renderModList();this.fill(d.id);this.renderAll(this.lastData,this.lastRoute);},
+  remove(){const i=this.defs.findIndex(x=>x.id===this.selected);if(i<0){$('cmMsg').textContent='尚未选中自定义模块。';return;}const id=this.defs[i].id;this.defs.splice(i,1);this.save();hidden.delete(id);delete order[id];const p=document.querySelector('[data-mod="'+id+'"]');if(p)p.remove();this.selected='';$('cmTitle').value='';renderModList();persist();$('cmMsg').textContent='模块已删除。';},
+  source(d,data,route){
+    if(d.source==='flow')return {kind:'flow',rows:(data&&data.flow&&data.flow.items)||[],meta:data&&data.flow};
+    if(d.source==='alerts')return {kind:'alerts',rows:(data&&data.alerts)||[]};
+    if(d.source==='metrics')return {kind:'metrics',rows:(route&&route.metrics)||((data&&data.cap)||[]).map(x=>({name:x.n,value:x.v,unit:x.u}))};
+    if(route&&route.kind==='flow')return {kind:'flow',rows:(route.flow&&route.flow.items)||[],meta:route.flow};
+    if(route&&route.kind==='alerts')return {kind:'alerts',rows:route.alerts||[]};
+    if(route&&route.kind==='metrics')return {kind:'metrics',rows:route.metrics||[]};
+    return {kind:'unknown',rows:[]};
+  },
+  value(d,s){
+    const f=(d.field||'').toLowerCase();
+    if(s.kind==='flow'){const m=s.meta||{};if(/session|会话/.test(f))return [m.totalSessions||0,'会话'];if(/device|设备/.test(f))return [m.devices||0,'设备'];return [fmtBytes(m.totalBytes||0),'流量'];}
+    if(s.kind==='alerts'){const rows=f?s.rows.filter(x=>String(x.lv||'').toLowerCase()===f):s.rows;return [rows.length,f?f.toUpperCase():'事件'];}
+    if(s.kind==='metrics'){const x=(f?s.rows.find(x=>String(x.name||'').toLowerCase().indexOf(f)>-1):s.rows[0])||{};return [x.value==null?'—':x.value,x.unit||x.name||'指标'];}
+    return ['—','等待自动识别'];
+  },
+  renderOne(d,data,route){
+    const p=document.querySelector('[data-mod="'+d.id+'"]'),body=p&&p.querySelector('.custom-body');if(!body)return;
+    const s=this.source(d,data,route);
+    if(d.type==='metric'){const v=this.value(d,s);body.innerHTML='<div class="custom-metric"><b>'+esc(v[0])+'</b><span>'+esc(v[1])+'</span></div>';return;}
+    let rows=[];
+    if(s.kind==='flow')rows=s.rows.slice(0,6).map(x=>({n:x.src+' → '+x.dst,v:x.bytes?fmtBytes(x.bytes):((x.sessions||0)+' 会话')}));
+    else if(s.kind==='alerts')rows=s.rows.slice(0,6).map(x=>({n:String(x.msg||'事件').replace(/<[^>]+>/g,''),v:x.lv||'—'}));
+    else if(s.kind==='metrics')rows=s.rows.slice(0,6).map(x=>({n:x.name||'指标',v:String(x.value==null?'—':x.value)+(x.unit||'')}));
+    body.innerHTML=rows.length?'<div class="custom-list">'+rows.map(x=>'<div class="ci"><span>'+esc(x.n)+'</span><b>'+esc(x.v)+'</b></div>').join('')+'</div>':'<div class="custom-empty">等待匹配数据</div>';
+  },
+  renderAll(data,route){this.lastData=data||this.lastData;this.lastRoute=route||this.lastRoute;this.defs.forEach(d=>this.renderOne(d,this.lastData,this.lastRoute));}
+};
 function applyLayout(){
   document.querySelectorAll('[data-mod]').forEach(function(p){
     const id = p.dataset.mod;
@@ -2542,8 +3447,12 @@ function applyLayout(){
   });
   ['colL','mid','colR'].forEach(function(cid){
     const col = $(cid); if(!col) return;
-    Array.prototype.slice.call(col.children).forEach(function(el,i){
-      if (el.dataset.mod) { order[el.dataset.mod] = i; col.appendChild(el); }
+    const panels = Array.prototype.slice.call(col.children).filter(function(el){ return el.dataset.mod; });
+    panels.sort(function(a,b){
+      const ai = order[a.dataset.mod], bi = order[b.dataset.mod];
+      return (ai === undefined ? 999 : ai) - (bi === undefined ? 999 : bi);
+    }).forEach(function(el,i){
+      order[el.dataset.mod] = i; col.appendChild(el);
     });
   });
 }
@@ -2553,12 +3462,14 @@ function renderModList(){
     return {id:p.dataset.mod, name:p.dataset.name || (t ? t.textContent : p.id)};
   });
   $('modList').innerHTML = mods.map(function(m){
-    return '<div class="m '+(hidden.has(m.id)?'':'on')+'" data-id="'+m.id+'">'+
-      '<span class="box">'+(hidden.has(m.id)?'':'✓')+'</span>'+m.name+'</div>';
+    const custom=CustomModules.defs.some(function(d){return d.id===m.id;});
+    return '<div class="m '+(hidden.has(m.id)?'':'on')+'" role="button" tabindex="0" data-id="'+m.id+'" data-custom="'+(custom?'1':'0')+'">'+
+      '<span class="box">'+(hidden.has(m.id)?'':'✓')+'</span><span class="mn">'+esc(m.name)+'</span>'+(custom?'<span class="me">编辑</span>':'')+'</div>';
   }).join('');
   $('modList').querySelectorAll('.m').forEach(function(el){
-    el.onclick = function(){
+    el.onclick = function(e){
       const id = el.dataset.id;
+      if(e.target&&e.target.classList.contains('me')){CustomModules.fill(id);return;}
       if (hidden.has(id)) hidden.delete(id); else hidden.add(id);
       el.classList.toggle('on', !hidden.has(id));
       el.querySelector('.box').textContent = hidden.has(id) ? '' : '✓';
@@ -2570,6 +3481,7 @@ $('btnCustom').onclick = function(e){
   const d = $('drawer'); d.classList.toggle('show');
   e.currentTarget.classList.toggle('on', d.classList.contains('show'));
   document.body.classList.toggle('editing', d.classList.contains('show'));
+  if(d.classList.contains('show')) TextEditor.refresh();
 };
 $('btnDone').onclick = function(){ $('drawer').classList.remove('show');
   document.body.classList.remove('editing'); $('btnCustom').classList.remove('on'); };
@@ -2580,6 +3492,7 @@ let dragEl = null;
 document.querySelectorAll('.panel[data-mod]').forEach(function(p){
   p.draggable = true;
   p.addEventListener('dragstart', function(e){
+    if(e.target.closest && e.target.closest('.txt-editable')){ e.preventDefault(); return; }
     dragEl = p; p.classList.add('drag-h');
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', p.dataset.mod);
@@ -2596,6 +3509,14 @@ document.querySelectorAll('.panel[data-mod]').forEach(function(p){
     if (!dragEl || dragEl===p) return;
     const col = p.closest('.col, #mid');
     col.insertBefore(dragEl, p);
+    const customDef = CustomModules.defs.find(function(d){ return d.id===dragEl.dataset.mod; });
+    if (customDef){
+      customDef.col = col.id==='colL' ? 'left' : col.id==='colR' ? 'right' : 'mid';
+      CustomModules.save();
+    }
+    Array.prototype.slice.call(col.children).forEach(function(el, i){
+      if (el.dataset.mod) order[el.dataset.mod] = i;
+    });
     applyLayout(); persist();
   });
 });
@@ -2634,19 +3555,45 @@ document.querySelectorAll('.panel[data-mod]').forEach(function(p){
 /* 重置时一并清除标题覆盖 */
 const _reset0 = $('btnReset').onclick;
 $('btnReset').onclick = function(){ try{ localStorage.removeItem(KEY+'.titles'); }catch(e){} if(_reset0) _reset0(); applyTitles(); };
+$('cmNew').onclick=function(){CustomModules.add();};
+$('cmSave').onclick=function(){CustomModules.update();};
+$('cmDelete').onclick=function(){CustomModules.remove();};
+$('txtApplyStyle').onclick=function(){TextEditor.applyStyle();};
+$('txtRestoreOne').onclick=function(){TextEditor.restoreOne();};
+$('txtRestoreAll').onclick=function(){TextEditor.restoreAll();};
+$('txtExport').onclick=function(){TextEditor.export();};
+stage.addEventListener('click',function(e){
+  if(!document.body.classList.contains('editing'))return;
+  const span=e.target.closest&&e.target.closest('.txt-editable');if(!span)return;
+  TextEditor.select(span);e.preventDefault();e.stopPropagation();
+},true);
+stage.addEventListener('dblclick',function(e){
+  if(!document.body.classList.contains('editing'))return;
+  const span=e.target.closest&&e.target.closest('.txt-editable');if(!span)return;
+  TextEditor.start(span);e.preventDefault();e.stopPropagation();
+},true);
+stage.addEventListener('keydown',function(e){
+  if(!TextEditor.editing||e.target!==TextEditor.editing)return;
+  if(e.key==='Enter'){e.preventDefault();e.target.blur();}
+  else if(e.key==='Escape'){e.preventDefault();TextEditor.finish(false);e.target.blur();}
+},true);
+stage.addEventListener('focusout',function(e){if(TextEditor.editing&&e.target===TextEditor.editing)TextEditor.finish(true);},true);
 
-/* ==========================================================================
+/* ===========================================================================
  *  6. 地图与数据（抽屉「地图与数据」页签）
  * ======================================================================== */
 function drawGeo(){
   const b = MapLayer.base;
+  $('geoGoogleKey').value = MapLayer.googleKey || '';
+  $('geoGoogleMsg').innerHTML = MapLayer.engine === 'google'
+    ? '<span style="color:var(--green)">✓ 当前使用 Google Maps</span> · 点位筛选与实时健康状态会同步到地图。'
+    : 'API Key 只保存在当前标签页。生产环境请限制为指定网站来源，并仅授权 Maps JavaScript API。';
   $('geoBaseMsg').innerHTML = b
     ? '<span style="color:var(--green)">✔ 已加载自定义底图</span> · 经纬范围 '
       + (+b.latN).toFixed(4)+' / '+(+b.latS).toFixed(4)+' / '+(+b.lngW).toFixed(4)+' / '+(+b.lngE).toFixed(4)
     + '<br><span style="color:#f59e0b">底图由你自备并自行负责其合规性；本页不内置、不下载任何地图瓦片。</span>'
-    : '当前为纯示意图，不加载任何在线地图。底图需你自己提供一份已合规审查的图源（例如自然资源标准底图或单位内部地图）。'
-      + '<br><span style="color:#f59e0b">Google 离线地图未接入 —— 境外地图瓦片属未授权地图源，'
-      + '互联网地图服务须使用具备测绘资质的图源（腾讯 / 高德 / 百度 / 天地图）。</span>';
+    : '当前离线模式使用纯示意图，不加载任何在线瓦片；也可以在上方配置 Google Maps 在线地图。'
+      + '<br><span style="color:#f59e0b">地图服务的使用范围、跨境访问与测绘合规需由部署单位按所在地区要求评估。</span>';
   $('geoLatN').value = b ? b.latN : '';
   $('geoLatS').value = b ? b.latS : '';
   $('geoLngW').value = b ? b.lngW : '';
@@ -2657,6 +3604,13 @@ function drawGeo(){
     ? '当前为<b style="color:var(--amber)">自定义点位</b>，已保存在本机浏览器。刷新后依然生效。'
     : '尚未导入自定义点位，当前使用内置点位。';
 }
+$('geoGoogleUse').onclick = function(){
+  const key=($('geoGoogleKey').value||'').trim();
+  if (!key){ $('geoGoogleMsg').innerHTML='<span style="color:var(--red)">请填写 Google Maps API Key</span>'; return; }
+  MapLayer.googleKey=key; SecretStore.set(GEO_KEY+'.google.key',key); MapLayer._googlePromise=null;
+  $('geoGoogleMsg').textContent='正在加载 Google Maps…'; MapLayer.showGoogle();
+};
+$('geoOfflineUse').onclick = function(){ MapLayer.showBuiltin(); drawGeo(); };
 $('geoBasePick').onclick  = function(){ $('geoBaseFile').click(); };
 $('geoBaseClear').onclick = function(){ MapLayer.saveBase(null); drawGeo(); };
 $('geoBaseFile').onchange = function(e){
@@ -2765,6 +3719,7 @@ function zbxSync(){
   $('zbxEp').value     = ZabbixAdapter.endpoint;
   $('zbxToken').value  = ZabbixAdapter.token;
   $('zbxUser').value   = ZabbixAdapter.user;
+  $('zbxPass').value   = ZabbixAdapter.pass;
   $('zbxSid').value    = ZabbixAdapter.sid || '';
   zbxAuthSync();
   $('zbxLive').classList.toggle('on', ZabbixAdapter.live);
@@ -2798,9 +3753,10 @@ function zbxAuthSet(m){
   if (m === 'sid'){                       // 手填模式直接采用输入框里的值，不再走登录
     ZabbixAdapter.sid = ($('zbxSid').value || '').trim();
     ZabbixAdapter.sidAt = Date.now();
-    try{ localStorage.setItem(ZKEY+'sid', ZabbixAdapter.sid); }catch(e){}
+    SecretStore.set(ZKEY+'sid', ZabbixAdapter.sid);
+    SecretStore.set(ZKEY+'sidat', String(ZabbixAdapter.sidAt));
   }
-  if (m !== 'pwd') ZabbixAdapter.sid = '';
+  if (m === 'token') ZabbixAdapter.sid = '';
   zbxAuthSync();
   $('zbxMsg').textContent = '—';
 }
@@ -2824,15 +3780,16 @@ function zbxRead(){
     ZabbixAdapter.sid = ($('zbxSid').value || '').trim();
   try{
     localStorage.setItem(ZKEY+'ep', ZabbixAdapter.endpoint);
-    localStorage.setItem(ZKEY+'token', ZabbixAdapter.token);
     localStorage.setItem(ZKEY+'user', ZabbixAdapter.user);
-    localStorage.setItem(ZKEY+'pass', ZabbixAdapter.pass);
   }catch(e){}
+  SecretStore.set(ZKEY+'token', ZabbixAdapter.token);
+  SecretStore.set(ZKEY+'pass', ZabbixAdapter.pass);
+  if (ZabbixAdapter.authMode === 'sid') SecretStore.set(ZKEY+'sid', ZabbixAdapter.sid);
 }
 $('zbxSave').onclick = function(){
   zbxRead();
   if (ZabbixAdapter.authMode === 'pwd' && ZabbixAdapter.user && ZabbixAdapter.pass){
-    try{ localStorage.removeItem(ZKEY+'sid'); }catch(e){}
+    SecretStore.remove(ZKEY+'sid'); SecretStore.remove(ZKEY+'sidat');
     ZabbixAdapter.sid = ''; ZabbixAdapter.sidAt = 0;
   }
   $('zbxMsg').innerHTML = '<span style="color:var(--green)">已保存</span>，下次轮询生效。点「测试连接」立即验证。';
@@ -2870,7 +3827,7 @@ $('zbxTest').onclick = async function(){
     $('zbxMsg').innerHTML = '<span style="color:var(--red)">✕ ' + esc(msg) + '</span><br>' + tip
       + 'Zabbix 默认允许跨域，但反代或 Nginx 需补 <code>Access-Control-Allow-Origin</code>。';
     if (want === 'pwd' && /Login failed/i.test(msg)){
-      ZabbixAdapter.sid = ''; try{ localStorage.removeItem(ZKEY+'sid'); }catch(e){}
+      ZabbixAdapter.sid = ''; SecretStore.remove(ZKEY+'sid'); SecretStore.remove(ZKEY+'sidat');
     }
   }
 };
@@ -2886,6 +3843,7 @@ function fazSync(){
   $('fazAuthRest').classList.toggle('on', c.mode === 'rest');
   $('fazEp').value     = c.ep;
   $('fazUser').value   = c.user;
+  $('fazPass').value   = c.pass;
   $('fazMethod').value = c.method;
   $('fazToken').value  = c.token;
   $('fazWin').value    = c.win;
@@ -2897,6 +3855,11 @@ function fazSync(){
   $('fazFAction').value= c.fAction;
   $('fazFSvc').value   = c.fSvc;
   $('fazFVdom').value  = c.fVdom;
+  $('fazFDst').value   = c.fDst;
+  $('fazFDevice').value= c.fDevice;
+  $('fazFBytesOut').value=c.fBytesOut;
+  $('fazFBytesIn').value =c.fBytesIn;
+  $('fazFSessions').value=c.fSessions;
   $('fazFldRpc').hidden  = (c.mode !== 'jsonrpc');
   $('fazFldRest').hidden = (c.mode !== 'rest');
 }
@@ -2904,6 +3867,7 @@ function fazRead(){
   const c = FazAdapter.cfg;
   c.ep     = ($('fazEp').value     || '').trim();
   c.user   = ($('fazUser').value   || '').trim();
+  c.pass   = $('fazPass').value || '';
   c.method = ($('fazMethod').value || 'log fetch').trim();
   c.token  = ($('fazToken').value  || '').trim();
   c.win    = +$('fazWin').value    || 60;
@@ -2915,6 +3879,11 @@ function fazRead(){
   c.fAction= ($('fazFAction').value|| '').trim() || FAZ_DEF.fAction;
   c.fSvc   = ($('fazFSvc').value   || '').trim() || FAZ_DEF.fSvc;
   c.fVdom  = ($('fazFVdom').value  || '').trim() || FAZ_DEF.fVdom;
+  c.fDst   = ($('fazFDst').value   || '').trim() || FAZ_DEF.fDst;
+  c.fDevice= ($('fazFDevice').value|| '').trim() || FAZ_DEF.fDevice;
+  c.fBytesOut=($('fazFBytesOut').value||'').trim() || FAZ_DEF.fBytesOut;
+  c.fBytesIn =($('fazFBytesIn').value ||'').trim() || FAZ_DEF.fBytesIn;
+  c.fSessions=($('fazFSessions').value||'').trim() || FAZ_DEF.fSessions;
   FazAdapter.save();
 }
 $('fazOn').onclick  = function(){ fazRead(); FazAdapter.cfg.on = true;  FazAdapter.save(); fazSync(); tick(true); };
@@ -2953,6 +3922,60 @@ $('fazTest').onclick = async function(){
       + '<br><span style="color:var(--txt-2)">原始返回：<code>' + esc(FazAdapter.lastRaw || '—') + '</code></span>';
   }
 };
+
+/* 主要设备会话 REST 接口 */
+function sessSync(){
+  const c=SessionAdapter.cfg;
+  $('sessOn').classList.toggle('on',!!c.on); $('sessOff').classList.toggle('on',!c.on);
+  $('sessEp').value=c.ep||''; $('sessToken').value=c.token||'';
+}
+function sessRead(){
+  SessionAdapter.cfg.ep=($('sessEp').value||'').trim();
+  SessionAdapter.cfg.token=($('sessToken').value||'').trim();
+  SessionAdapter.save();
+}
+$('sessOn').onclick=function(){ sessRead(); SessionAdapter.cfg.on=true; SessionAdapter.save(); sessSync(); tick(true); };
+$('sessOff').onclick=function(){ SessionAdapter.cfg.on=false; SessionAdapter.save(); sessSync(); tick(true); };
+$('sessSave').onclick=function(){ sessRead(); $('sessMsg').innerHTML='<span style="color:var(--green)">✓ 已保存</span>，下次轮询生效。'; };
+$('sessTest').onclick=async function(){
+  sessRead();
+  if (!SessionAdapter.cfg.ep){ $('sessMsg').innerHTML='<span style="color:var(--red)">请先填写会话接口地址</span>'; return; }
+  const was=SessionAdapter.cfg.on; SessionAdapter.cfg.on=true;
+  $('sessMsg').textContent='正在读取会话…';
+  const flow=await SessionAdapter.fetch(); SessionAdapter.cfg.on=was;
+  if (flow){
+    $('sessMsg').innerHTML='<span style="color:var(--green)">✓ 接口可用</span> · '+
+      flow.totalSessions.toLocaleString()+' 会话 · '+fmtBytes(flow.totalBytes)+' · '+flow.devices+' 台设备';
+    renderFlow(flow);
+  }else $('sessMsg').innerHTML='<span style="color:var(--red)">✕ '+esc(SessionAdapter.errors[0]||'未取到会话')+'</span>';
+};
+sessSync();
+
+/* 统一 REST 数据入口 */
+function autoSync(){
+  const c=AutoSourceAdapter.cfg;
+  $('autoOn').classList.toggle('on',!!c.on);$('autoOff').classList.toggle('on',!c.on);
+  $('autoEp').value=c.ep||'';$('autoToken').value=c.token||'';
+}
+function autoRead(){
+  AutoSourceAdapter.cfg.ep=($('autoEp').value||'').trim();
+  AutoSourceAdapter.cfg.token=($('autoToken').value||'').trim();
+  AutoSourceAdapter.save();
+}
+$('autoOn').onclick=function(){autoRead();AutoSourceAdapter.cfg.on=true;AutoSourceAdapter.save();autoSync();tick(true);};
+$('autoOff').onclick=function(){AutoSourceAdapter.cfg.on=false;AutoSourceAdapter.save();autoSync();tick(true);};
+$('autoSave').onclick=function(){autoRead();$('autoMsg').innerHTML='<span style="color:var(--green)">✓ 已保存</span>，下次轮询自动识别。';};
+$('autoTest').onclick=async function(){
+  autoRead();if(!AutoSourceAdapter.cfg.ep){$('autoMsg').innerHTML='<span style="color:var(--red)">请先填写统一接口地址</span>';return;}
+  const was=AutoSourceAdapter.cfg.on;AutoSourceAdapter.cfg.on=true;$('autoMsg').textContent='正在读取并分析字段结构…';
+  const routed=await AutoSourceAdapter.fetch();AutoSourceAdapter.cfg.on=was;
+  if(routed){
+    const names={flow:'会话流量',alerts:'安全事件',metrics:'性能指标'};
+    $('autoMsg').innerHTML='<span style="color:var(--green)">✓ 识别为 '+names[routed.kind]+'</span> · 置信得分 '+routed.confidence+' · '+esc(routed.reason);
+    CustomModules.renderAll(CustomModules.lastData,routed);
+  }else $('autoMsg').innerHTML='<span style="color:var(--red)">✕ '+esc(AutoSourceAdapter.errors[0]||'无法识别')+'</span>';
+};
+autoSync();
 
 /* 反向代理配置：点开即可复制，避免跨域 + 避免 Token 落在页面里 */
 const ZBX_NGINX = [
@@ -3035,7 +4058,7 @@ function chList(){
           return '<option value="'+a+'"'+(c.agg===a?' selected':'')+'>'+a+'</option>';
         }).join('')+'</select>'+
         '<input class="k-scale" type="number" step="any" value="'+(c.scale == null ? 1 : c.scale)+'" title="换算系数" />'+
-        '<div class="rm" data-i="'+i+'" title="删除该行">✕</div>'+
+        '<div class="rm" role="button" tabindex="0" data-i="'+i+'" title="删除该行">✕</div>'+
       '</div>'+
       '<input class="k-key" value="'+esc(c.key)+'" placeholder="Zabbix item key 子串 · 留空沿用演示基线" />'+
       '<input class="k-unit" value="'+esc(c.unit)+'" placeholder="单位，如 %" />'+
@@ -3109,9 +4132,13 @@ document.querySelectorAll('#drawer .tabs .t').forEach(function(el){
  *     window.Netcockpit.setPoints(...) 注入点位；其它方法见下方注释
  * ======================================================================== */
 window.Netcockpit = {
-  version : '1.2.0',
+  version : '1.7.0',
   map     : MapLayer,
   asset   : ASSET,
+  sessions: SessionAdapter,
+  router  : DataRouter,
+  customModules: CustomModules,
+  textEditor: TextEditor,
   /** 注入点位数组，自动持久化 */
   setPoints(arr){ MapLayer.setPoints(arr); tick(true); return this; },
   /** 读取当前点位 */
@@ -3120,6 +4147,10 @@ window.Netcockpit = {
   csv(txt){ return MapLayer.csv2points(txt); },
   /** 离线底图：传入 {src,latN,latS,lngW,lngE} 或 null 清除 */
   basemap(b){ MapLayer.saveBase(b); drawGeo(); return this; },
+  /** 切换 Google Maps；key 仅保存在当前标签页 */
+  googleMap(key){ if(key){ MapLayer.googleKey=key; SecretStore.set(GEO_KEY+'.google.key',key); } MapLayer.showGoogle(); return this; },
+  /** 切回离线地图 */
+  offlineMap(){ MapLayer.showBuiltin(); return this; },
   /** 定位到指定点位 id */
   focus(id){
     const p = MapLayer.points.find(x=>x.id===id);
@@ -3131,26 +4162,50 @@ window.Netcockpit = {
   fitAll(){ return this; },
   /** 立即刷新一次数据 */
   refresh(){ tick(true); return this; },
+  /** 直接注入会话数组，适合被父页面或其它采集脚本调用 */
+  setSessionRows(rows){ const f=FlowModel.build(FlowModel.rows(rows),null,'外部注入'); if(f){renderFlow(f);AssetTraffic.render(AssetTraffic.base,f);} return f; },
+  /** 注入任意 JSON，按结构自动识别为 flow / alerts / metrics；unknown 不会覆盖大屏 */
+  route(payload){ const r=DataRouter.route(payload); if(r.flow){renderFlow(r.flow);AssetTraffic.render(AssetTraffic.base,r.flow);} if(r.alerts)renderAlerts(r.alerts); CustomModules.renderAll(CustomModules.lastData,r); return r; },
   /** 指标映射：读取 / 覆盖（数组元素 {label,key,agg,unit,scale,idx}，key 留空 = 该行沿用演示基线） */
   channels(){ return ZabbixAdapter.channels(); },
   setChannels(a){ ZabbixAdapter.saveChannels(a); chList(); tick(true); return this; }
 };
 
 MapLayer.boot();
-renderModList(); applyLayout(); applyTitles(); renderSevMap(); drawGeo(); applyTheme(); bindTheme();
+CustomModules.ensure(); renderModList(); applyLayout(); applyTitles(); renderSevMap(); drawGeo(); applyTheme(); bindTheme(); TextEditor.refresh();
+/* div/span 控件补齐键盘可达性；动态控件在各自 render 函数中直接声明 role/tabindex。 */
+document.querySelectorAll('.btn,.ptab,.chipbtn,.sw,#drawer .tabs .t').forEach(function(el){
+  el.setAttribute('role', 'button');
+  if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
+});
+document.addEventListener('keydown', function(e){
+  const el = e.target;
+  if (!el || el.getAttribute('role') !== 'button' || (e.key !== 'Enter' && e.key !== ' ')) return;
+  e.preventDefault(); el.click();
+});
+$('lastSync').setAttribute('aria-live', 'polite');
+$('zbxMsg').setAttribute('aria-live', 'polite');
+$('fazMsg').setAttribute('aria-live', 'polite');
+$('sessMsg').setAttribute('aria-live', 'polite');
+$('autoMsg').setAttribute('aria-live', 'polite');
+$('geoGoogleMsg').setAttribute('aria-live', 'polite');
 tick(true);
 
 /* 调试/二次开发入口：
    ?drawer=geo  → 打开「地图与数据」页签
    ?drawer=zbx  → 打开「数据接入」页签
-   ?zbx=1|0     → 启动时强制 实时 / 演示 模式（优先级高于本地保存值） */
+   ?view=paged&page=exec|net|sec → 固定打开领导总览 / 网络运行 / 网络安全专题
+   ?zbx=1|0     → 启动时强制 实时 / 演示模式（优先级高于本地保存值） */
 (function(){
   const q = new URLSearchParams(location.search);
-  const d = q.get('drawer'), z = q.get('zbx');
+  const d = q.get('drawer'), z = q.get('zbx'), v=q.get('view'), p=q.get('page');
   if (z !== null){
     ZabbixAdapter.live = z === '1' || z === 'live';
     localStorage.setItem(ZKEY+'live', ZabbixAdapter.live ? '1' : '0');
   }
+  if(v==='single'||v==='paged')viewMode=v;
+  if(['exec','net','sec'].indexOf(p)>-1)viewPage=p;
+  applyView();
   if (!d) return;
   $('drawer').classList.add('show');
   document.body.classList.add('editing');
