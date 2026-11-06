@@ -18,6 +18,7 @@
   - 支持通过反向代理注入认证，规避跨域（CORS）。
 - **双地图引擎**：Google Maps JavaScript API 按需加载，同时保留内置示意图与用户自导入底图作为离线回退。
 - **流量走向**：会话 REST 优先、FortiAnalyzer 次优先、演示基线兜底，并可切换查看原有端口流量与丢包排行。
+- **全球双向流量地图**：同一模块并列展示出站与入站世界地图，按私网/公网方向自动分流，支持会话自带经纬度或由企业 GeoIP REST 服务补全公网 IP 位置。
 - **资产流量 TOP**：服务器、存储、交换机与 AP 分成四个独立组，按采集窗口累计流量显示 TOP 5；实时会话数据可依据 `asset_type` 或设备名称特征自动归组。
 
 ## 适用场景
@@ -56,6 +57,18 @@
 
 网络运行页的「资产分类流量 TOP」会进一步把会话记录归入服务器、存储、交换机或 AP。推荐数据源同时提供 `asset_name` 和 `asset_type`；`asset_type` 可使用 `server`、`storage`、`switch`、`ap`，系统也会用常见设备命名（如 `SRV-`、`PowerStore`、`Core-`、`AP-`）辅助识别。无法可靠归组时不会把记录硬塞入错误类别，该组继续显示“演示基线”。
 
+### 全球会话流向与 GeoIP
+
+在网络运行页的「主要设备会话与流量走向」点击“全球流向”，即可查看出站和入站两张世界地图。系统将“私网源 → 公网目的”识别为出站，将“公网源 → 私网目的”识别为入站；也可以由数据源直接提供 `direction: inbound/outbound`。
+
+定位方式按以下顺序使用：
+
+1. 会话记录直接提供源/目的国家和经纬度；
+2. 在「自定义 → 数据接入 → IP 地理定位」配置企业内部 GeoIP REST 地址模板，例如 `https://geo.internal/lookup?ip={ip}`；
+3. 仍无法定位时只统计为“待定位”，不会生成虚假落点。
+
+GeoIP 默认关闭，避免把企业会话 IP 发送给未经授权的第三方。推荐通过同源反向代理接入内部 GeoIP/MaxMind 服务。
+
 ### Google Maps
 
 在「自定义 → 地图与数据」填写 Maps JavaScript API Key 并启用。Google Maps Platform 要求项目启用计费；生产 Key 应限制为大屏站点的 HTTP Referrer，并仅授权 Maps JavaScript API。建议通过 Web 服务器访问页面，不要以 `file://` 作为生产部署方式。
@@ -71,6 +84,10 @@
   "asset_type": "switch",
   "src": "10.20.1.10",
   "dst": "203.0.113.20",
+  "direction": "outbound",
+  "dst_country": "新加坡",
+  "dst_lat": 1.3521,
+  "dst_lng": 103.8198,
   "service": "HTTPS",
   "sessions": 128,
   "bytes_in": 1048576,

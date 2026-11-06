@@ -381,6 +381,19 @@ body.paused .flow{animation-play-state:paused}
 .flow-row .bar{height:6px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden}
 .flow-row .bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--cyan),var(--blue));box-shadow:0 0 8px var(--cyan)}
 .flow-row .val{text-align:right;color:var(--txt);white-space:nowrap}
+.world-note{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px;font-size:9.5px;color:var(--txt-3)}
+.world-note b{color:var(--cyan);font-weight:700}
+.world-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;height:calc(100% - 20px)}
+.world-card{min-width:0;border:1px solid var(--line);border-radius:8px;background:linear-gradient(180deg,rgba(8,27,51,.84),rgba(3,13,27,.72));padding:6px 7px;overflow:hidden}
+.world-card-h{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:2px}
+.world-card-h b{font-size:11px;color:var(--txt);letter-spacing:.5px}.world-card-h span{font-size:9px;color:var(--txt-3)}
+.world-map{height:128px}.world-map svg{width:100%;height:100%}
+.world-land{fill:rgba(66,112,158,.18);stroke:rgba(94,162,212,.34);stroke-width:.7}
+.world-grid{stroke:rgba(88,145,190,.12);stroke-width:.55;stroke-dasharray:2 4}
+.world-arc{fill:none;stroke-width:1.3;stroke-linecap:round;stroke-dasharray:4 3;animation:worldDash 2.4s linear infinite}
+.world-node{filter:drop-shadow(0 0 5px currentColor)}
+.world-label{font-size:7.5px;fill:#9fb8d3;paint-order:stroke;stroke:#061226;stroke-width:2px;stroke-linejoin:round}
+@keyframes worldDash{to{stroke-dashoffset:-28}}
 
 /* 资产分类流量 TOP：服务器 / 存储 / 交换机 / AP 独立归组 */
 .asset-top-tabs{display:flex;gap:6px;margin-bottom:9px}
@@ -610,7 +623,7 @@ body.editing .edit-tip{display:block}
 
       <div class="panel" data-mod="link" data-page="exec net" style="flex:0 0 176px">
         <div class="p-h"><i class="bar"></i><span class="t">主要设备会话与流量走向</span><span class="en">Sessions &amp; Traffic Flow</span>
-          <div class="r"><span class="chipbtn" id="flowViewBtn">会话流向</span><span class="chipbtn" id="ifViewBtn">接口排行</span><i class="grip"></i></div></div>
+          <div class="r"><span class="chipbtn" id="flowViewBtn">会话流向</span><span class="chipbtn" id="ifViewBtn">接口排行</span><span class="chipbtn" id="worldViewBtn">全球流向</span><i class="grip"></i></div></div>
         <div class="p-b">
           <div id="flowView">
             <div class="flow-summary"><span>会话<b id="flowSessions">--</b></span><span>流量<b id="flowBytes">--</b></span><span>设备<b id="flowDevices">--</b></span><span class="src" id="flowSource">演示基线</span></div>
@@ -619,6 +632,13 @@ body.editing .edit-tip{display:block}
           <div id="ifView" hidden>
             <div class="rows" id="linkRows" style="margin-bottom:10px"></div>
             <svg id="spark" viewBox="0 0 640 78" style="width:100%;height:78px"></svg>
+          </div>
+          <div id="worldView" hidden>
+            <div class="world-note"><span>私网 → 公网判定出站，公网 → 私网判定入站</span><b id="worldGeoState">演示地理数据</b></div>
+            <div class="world-pair">
+              <div class="world-card"><div class="world-card-h"><b>出站 OUTBOUND</b><span id="worldOutMeta">--</span></div><div class="world-map" id="worldOut"></div></div>
+              <div class="world-card"><div class="world-card-h"><b>入站 INBOUND</b><span id="worldInMeta">--</span></div><div class="world-map" id="worldIn"></div></div>
+            </div>
           </div>
         </div>
       </div>
@@ -921,6 +941,27 @@ body.editing .edit-tip{display:block}
           <div class="btn" id="sessSave">保存</div>
         </div>
         <div class="hint" id="sessMsg">兼容数组或 <code>data/result/items/rows/sessions</code> 包装。字段可用 <code>src/srcip</code>、<code>dst/dstip</code>、<code>device/devname</code>、<code>bytes/bytes_in/bytes_out</code>、<code>sessions/count</code>；提供 <code>asset_name</code> 与 <code>asset_type</code> 时，可自动归入服务器 / 存储 / 交换机 / AP 流量 TOP。</div>
+      </div>
+
+      <div class="fld">
+        <label>IP 地理定位 · GeoIP REST</label>
+        <div class="row2">
+          <div class="btn" id="geoIpOn">启用 GeoIP</div>
+          <div class="btn" id="geoIpOff">停用</div>
+        </div>
+        <div class="fld" style="margin-top:6px">
+          <label>查询地址模板</label>
+          <input id="geoIpEp" spellcheck="false" placeholder="https://geo.internal/lookup?ip={ip}" />
+        </div>
+        <div class="fld">
+          <label>Bearer Token（可选）</label>
+          <input id="geoIpToken" type="password" spellcheck="false" autocomplete="off" placeholder="仅保存在当前标签页" />
+        </div>
+        <div class="row2">
+          <div class="btn" id="geoIpTest">测试 8.8.8.8</div>
+          <div class="btn" id="geoIpSave">保存</div>
+        </div>
+        <div class="hint" id="geoIpMsg">推荐使用企业内部 GeoIP 服务；模板必须包含 <code>{ip}</code>。返回字段支持 <code>lat/latitude</code>、<code>lng/lon/longitude</code>、<code>country/country_name</code>。未启用时也可由会话接口直接返回源/目的经纬度。</div>
       </div>
 
       <div class="fld">
@@ -1754,7 +1795,14 @@ const FlowModel = {
     bytes:['bytes','total_bytes','traffic','octets'],
     bytesOut:['bytes_out','out_bytes','sentbyte','sent_bytes','tx_bytes'],
     bytesIn:['bytes_in','in_bytes','rcvdbyte','recvbyte','received_bytes','rx_bytes'],
-    sessions:['sessions','session_count','count','flows','connections']
+    sessions:['sessions','session_count','count','flows','connections'],
+    srcLat:['src_lat','src_latitude','source_lat','source_latitude'],
+    srcLng:['src_lng','src_lon','src_longitude','source_lng','source_lon','source_longitude'],
+    dstLat:['dst_lat','dst_latitude','destination_lat','destination_latitude'],
+    dstLng:['dst_lng','dst_lon','dst_longitude','destination_lng','destination_lon','destination_longitude'],
+    srcCountry:['src_country','source_country','src_country_name'],
+    dstCountry:['dst_country','destination_country','dst_country_name'],
+    direction:['direction','flow_direction','traffic_direction','dir']
   },
   pick(o, names){
     if (!o) return undefined;
@@ -1791,6 +1839,11 @@ const FlowModel = {
       const assetName = String(get('asset') || device);
       const assetType = String(get('type') || '');
       const service = String(get('service') || '—');
+      const coord=function(v){const n=Number(v);return isFinite(n)?n:null;};
+      const srcLat=coord(get('srcLat')),srcLng=coord(get('srcLng'));
+      const dstLat=coord(get('dstLat')),dstLng=coord(get('dstLng'));
+      const srcCountry=String(get('srcCountry')||''),dstCountry=String(get('dstCountry')||'');
+      const direction=String(get('direction')||'');
       const sessions = Math.max(1, FlowModel.num(get('sessions')) || 1);
       const recordTotalBytes = FlowModel.num(get('bytes'));
       const directionalBytes = FlowModel.num(get('bytesOut')) + FlowModel.num(get('bytesIn'));
@@ -1799,7 +1852,8 @@ const FlowModel = {
       const bytes = recordTotalBytes || directionalBytes;
       if (src === '未知源' && dst === '未知目的') return;
       const key = [device,assetName,assetType,src,dst,service].join('\u0001');
-      if (!groups[key]) groups[key] = { src:src,dst:dst,device:device,assetName:assetName,assetType:assetType,service:service,sessions:0,bytes:0 };
+      if (!groups[key]) groups[key] = { src:src,dst:dst,device:device,assetName:assetName,assetType:assetType,service:service,sessions:0,bytes:0,
+        srcLat:srcLat,srcLng:srcLng,dstLat:dstLat,dstLng:dstLng,srcCountry:srcCountry,dstCountry:dstCountry,direction:direction };
       groups[key].sessions += sessions; groups[key].bytes += bytes;
       totalSessions += sessions; totalBytes += bytes; devices.add(device);
     });
@@ -1844,6 +1898,73 @@ const SessionAdapter = {
   }
 };
 SessionAdapter.save();
+
+/* IP → 经纬度补全。默认关闭，避免把企业会话 IP 发送给未授权的第三方服务。 */
+const IpUtil={
+  clean(v){
+    const s=String(v||'').trim(),b=s.match(/^\[([^\]]+)\](?::\d+)?$/);if(b)return b[1];
+    return /^\d{1,3}(?:\.\d{1,3}){3}:\d+$/.test(s)?s.replace(/:\d+$/,''):s;
+  },
+  ipv4(v){const s=this.clean(v),a=s.split('.');return a.length===4&&a.every(x=>/^\d+$/.test(x)&&+x>=0&&+x<=255);},
+  private(v){
+    const s=this.clean(v).toLowerCase();
+    if(this.ipv4(s)){
+      const a=s.split('.').map(Number);
+      return a[0]===10||a[0]===127||(a[0]===169&&a[1]===254)||(a[0]===172&&a[1]>=16&&a[1]<=31)||(a[0]===192&&a[1]===168)||(a[0]===100&&a[1]>=64&&a[1]<=127);
+    }
+    return s==='::1'||s.indexOf('fc')===0||s.indexOf('fd')===0||s.indexOf('fe8')===0||s.indexOf('fe9')===0||s.indexOf('fea')===0||s.indexOf('feb')===0;
+  },
+  public(v){const s=this.clean(v);return (this.ipv4(s)||s.indexOf(':')>-1)&&!this.private(s);}
+};
+const GEOIP_DEF={on:false,ep:''};
+const GeoIPAdapter={
+  cfg:(function(){let x={};try{x=JSON.parse(localStorage.getItem('netcockpit.geoip')||'{}')||{};}catch(e){}return Object.assign({},GEOIP_DEF,x,{token:SecretStore.get('netcockpit.geoip.token')});})(),
+  cache:new Map(),errors:[],timeout:7000,lastSync:0,
+  save(){
+    try{localStorage.setItem('netcockpit.geoip',JSON.stringify({on:!!this.cfg.on,ep:this.cfg.ep||''}));}catch(e){}
+    SecretStore.set('netcockpit.geoip.token',this.cfg.token||'');
+  },
+  point(json){
+    const p=(json&&json.data)||(json&&json.result)||(json&&json.location)||json||{};
+    const lat=Number(p.lat!==undefined?p.lat:p.latitude),lng=Number(p.lng!==undefined?p.lng:(p.lon!==undefined?p.lon:p.longitude));
+    let country=p.country_name||p.countryName||p.country||p.region_name||p.region||'';
+    if(country&&typeof country==='object')country=country.name||country.label||'';
+    if(!isFinite(lat)||!isFinite(lng)||lat < -90||lat > 90||lng < -180||lng > 180)return null;
+    return {lat:lat,lng:lng,country:String(country||'未知地区')};
+  },
+  async lookup(ip){
+    ip=IpUtil.clean(ip);if(this.cache.has(ip))return this.cache.get(ip);
+    if(!this.cfg.ep||this.cfg.ep.indexOf('{ip}')<0)throw new Error('GeoIP 地址模板必须包含 {ip}');
+    const ctl=typeof AbortController!=='undefined'?new AbortController():null,tm=setTimeout(function(){if(ctl)ctl.abort();},this.timeout);
+    try{
+      const headers={Accept:'application/json'};if(this.cfg.token)headers.Authorization='Bearer '+this.cfg.token;
+      const url=this.cfg.ep.replace('{ip}',encodeURIComponent(ip));
+      const r=await fetch(url,{method:'GET',headers:headers,signal:ctl?ctl.signal:undefined});
+      if(!r.ok)throw new Error('GeoIP HTTP '+r.status);
+      const point=this.point(await r.json());if(!point)throw new Error('GeoIP 返回缺少有效经纬度');
+      this.cache.set(ip,point);this.lastSync=Date.now();return point;
+    }finally{clearTimeout(tm);}
+  },
+  async enrich(flow){
+    if(!this.cfg.on||!flow)return flow;this.errors=[];
+    const rows=flow.allItems||flow.items||[],ips=[];
+    rows.forEach(function(x){
+      if(IpUtil.public(x.src)&&(x.srcLat===null||x.srcLng===null))ips.push(IpUtil.clean(x.src));
+      if(IpUtil.public(x.dst)&&(x.dstLat===null||x.dstLng===null))ips.push(IpUtil.clean(x.dst));
+    });
+    const unique=Array.from(new Set(ips)).slice(0,12),resolved={};
+    await Promise.all(unique.map(async ip=>{try{resolved[ip]=await GeoIPAdapter.lookup(ip);}catch(e){GeoIPAdapter.errors.push(e.message||String(e));}}));
+    rows.forEach(function(x){
+      let p=resolved[IpUtil.clean(x.src)]||GeoIPAdapter.cache.get(IpUtil.clean(x.src));
+      if(p&&(x.srcLat===null||x.srcLng===null)){x.srcLat=p.lat;x.srcLng=p.lng;x.srcCountry=x.srcCountry||p.country;}
+      p=resolved[IpUtil.clean(x.dst)]||GeoIPAdapter.cache.get(IpUtil.clean(x.dst));
+      if(p&&(x.dstLat===null||x.dstLng===null)){x.dstLat=p.lat;x.dstLng=p.lng;x.dstCountry=x.dstCountry||p.country;}
+    });
+    flow.geo={resolved:unique.filter(ip=>resolved[ip]).length,pending:Math.max(0,new Set(ips).size-unique.filter(ip=>resolved[ip]).length),source:'GeoIP REST'};
+    return flow;
+  }
+};
+GeoIPAdapter.save();
 
 /* 统一数据入口：只按可验证的字段结构分流，置信度不足时保持 unknown，避免误覆盖。 */
 const DataRouter = {
@@ -2680,10 +2801,14 @@ const Mock = {
       source:'演示基线', totalSessions:Math.round(this.rnd(18000,26000,0)),
       totalBytes:this.rnd(82,136,1)*1024*1024*1024, devices:6,
       items:[
-        {src:'办公网',dst:'互联网出口',device:'FW-02',service:'HTTPS',sessions:6240,bytes:38.6*1024*1024*1024},
-        {src:'生产区',dst:'数据中心 IDC-1',device:'Core-01',service:'业务 API',sessions:4180,bytes:29.4*1024*1024*1024},
-        {src:'分支园区',dst:'总部 A 栋',device:'SD-WAN',service:'IPsec',sessions:2760,bytes:17.2*1024*1024*1024},
-        {src:'互联网',dst:'DMZ 区',device:'FTN-400F',service:'HTTPS',sessions:1950,bytes:8.7*1024*1024*1024}
+        {src:'10.20.8.23',dst:'142.250.72.14',device:'FW-02',service:'HTTPS',sessions:6240,bytes:38.6*1024*1024*1024,dstCountry:'美国',dstLat:37.4,dstLng:-122.1,direction:'outbound'},
+        {src:'10.30.4.18',dst:'8.8.8.8',device:'Core-01',service:'DNS',sessions:4180,bytes:29.4*1024*1024*1024,dstCountry:'美国',dstLat:37.8,dstLng:-122.4,direction:'outbound'},
+        {src:'185.199.108.153',dst:'10.50.3.20',device:'FTN-400F',service:'HTTPS',sessions:2760,bytes:17.2*1024*1024*1024,srcCountry:'美国',srcLat:37.8,srcLng:-122.4,direction:'inbound'},
+        {src:'1.1.1.1',dst:'10.20.2.15',device:'FW-01',service:'DNS',sessions:1950,bytes:8.7*1024*1024*1024,srcCountry:'澳大利亚',srcLat:-33.9,srcLng:151.2,direction:'inbound'},
+        {src:'10.42.7.9',dst:'13.107.42.14',device:'FW-02',service:'M365',sessions:1680,bytes:7.6*1024*1024*1024,dstCountry:'新加坡',dstLat:1.35,dstLng:103.82,direction:'outbound'},
+        {src:'91.198.174.192',dst:'10.50.3.18',device:'FTN-400F',service:'HTTPS',sessions:980,bytes:5.1*1024*1024*1024,srcCountry:'荷兰',srcLat:52.37,srcLng:4.9,direction:'inbound'},
+        {src:'10.60.1.33',dst:'35.186.224.25',device:'FW-01',service:'API',sessions:760,bytes:4.2*1024*1024*1024,dstCountry:'德国',dstLat:50.11,dstLng:8.68,direction:'outbound'},
+        {src:'103.21.244.9',dst:'10.50.3.21',device:'FTN-400F',service:'HTTPS',sessions:620,bytes:3.4*1024*1024*1024,srcCountry:'日本',srcLat:35.68,srcLng:139.69,direction:'inbound'}
       ]
     };
     /* --- 资产分类流量 TOP（无实时分类字段时作为演示基线）--- */
@@ -2980,7 +3105,72 @@ function renderFlow(f){
       '<span class="bar"><i style="width:'+Math.max(3,weight/mx*100).toFixed(1)+'%"></i></span>'+
       '<span class="val">'+esc(val)+'</span></div>';
   }).join('') || '<div class="hint">暂无可识别的会话流向</div>';
+  WorldFlow.render(f);
 }
+
+/* 全球会话方向图：只使用会话自带坐标或已授权 GeoIP 服务返回的坐标。 */
+const WorldFlow={
+  project(lat,lng){return {x:+((Number(lng)+180)/360*360).toFixed(1),y:+((90-Number(lat))/180*150).toFixed(1)};},
+  direction(x){
+    const d=String(x.direction||'').toLowerCase();
+    if(/out|egress|outbound|出口|出站/.test(d))return 'out';
+    if(/in|ingress|inbound|入口|入站/.test(d))return 'in';
+    if(IpUtil.private(x.src)&&IpUtil.public(x.dst))return 'out';
+    if(IpUtil.public(x.src)&&IpUtil.private(x.dst))return 'in';
+    return '';
+  },
+  groups(flow){
+    const maps={out:{},in:{}},pending={out:0,in:0},rows=(flow&&flow.allItems)||(flow&&flow.items)||[];
+    rows.forEach(x=>{
+      const dir=this.direction(x);if(!dir)return;
+      const lat=dir==='out'?x.dstLat:x.srcLat,lng=dir==='out'?x.dstLng:x.srcLng;
+      const country=String((dir==='out'?x.dstCountry:x.srcCountry)||'未知地区');
+      if(lat===null||lng===null||!isFinite(Number(lat))||!isFinite(Number(lng))){pending[dir]++;return;}
+      const key=country+'|'+Number(lat).toFixed(2)+'|'+Number(lng).toFixed(2);
+      if(!maps[dir][key])maps[dir][key]={country:country,lat:Number(lat),lng:Number(lng),bytes:0,sessions:0,flows:0};
+      maps[dir][key].bytes+=Number(x.bytes)||0;maps[dir][key].sessions+=Number(x.sessions)||0;maps[dir][key].flows++;
+    });
+    return {out:Object.values(maps.out).sort((a,b)=>(b.bytes||b.sessions)-(a.bytes||a.sessions)).slice(0,7),
+      in:Object.values(maps.in).sort((a,b)=>(b.bytes||b.sessions)-(a.bytes||a.sessions)).slice(0,7),pending:pending};
+  },
+  base(){
+    let grid='';for(let x=0;x<=360;x+=60)grid+='<path class="world-grid" d="M'+x+' 0V150"/>';
+    for(let y=25;y<150;y+=25)grid+='<path class="world-grid" d="M0 '+y+'H360"/>';
+    return grid+
+      '<path class="world-land" d="M14 30L30 17 55 12 83 19 100 30 121 36 126 49 112 58 100 54 87 67 70 63 58 53 39 51 27 42Z"/>'+
+      '<path class="world-land" d="M104 62L126 66 139 81 136 99 125 124 113 140 104 121 98 98 91 80Z"/>'+
+      '<path class="world-land" d="M119 9L145 5 158 14 151 27 127 25 113 17Z"/>'+
+      '<path class="world-land" d="M168 36L181 27 202 29 213 39 205 49 188 50 176 45Z"/>'+
+      '<path class="world-land" d="M177 53L204 49 221 66 218 91 207 116 191 126 177 108 168 84 169 64Z"/>'+
+      '<path class="world-land" d="M207 30L235 19 274 18 305 25 332 37 339 52 320 61 301 58 287 70 264 67 247 57 229 61 214 49Z"/>'+
+      '<path class="world-land" d="M278 82L295 74 311 81 305 96 289 99Z"/>'+
+      '<path class="world-land" d="M290 108L313 98 337 106 340 124 321 133 298 126Z"/>';
+  },
+  map(dir,points,pending){
+    const local=(typeof MapLayer!=='undefined'&&MapLayer.center)?MapLayer.center():{lat:31.2,lng:121.5};
+    const home=this.project(local.lat,local.lng),color=dir==='out'?C.cyan:C.pink,mx=Math.max.apply(null,points.map(x=>x.bytes||x.sessions).concat([1]));
+    let arcs='';points.forEach((p,i)=>{
+      const q=this.project(p.lat,p.lng),a=dir==='out'?home:q,b=dir==='out'?q:home;
+      const cx=(a.x+b.x)/2,cy=Math.max(8,Math.min(a.y,b.y)-18-Math.abs(a.x-b.x)*.08),op=(.38+.62*((p.bytes||p.sessions)/mx)).toFixed(2);
+      const label=(p.country||'未知地区').slice(0,12),lx=Math.min(334,Math.max(4,q.x+4)),ly=Math.min(144,Math.max(9,q.y-4));
+      arcs+='<path class="world-arc" d="M'+a.x+' '+a.y+' Q'+cx+' '+cy+' '+b.x+' '+b.y+'" stroke="'+color+'" opacity="'+op+'"><title>'+esc(label)+' · '+fmtBytes(p.bytes)+' · '+p.sessions.toLocaleString()+' 会话</title></path>'+
+        '<circle class="world-node" cx="'+q.x+'" cy="'+q.y+'" r="'+(i<3?2.8:2.1)+'" fill="'+color+'" style="color:'+color+'"><title>'+esc(label)+'</title></circle>'+
+        (i<4?'<text class="world-label" x="'+lx+'" y="'+ly+'">'+esc(label)+'</text>':'');
+    });
+    arcs+='<circle class="world-node" cx="'+home.x+'" cy="'+home.y+'" r="3.2" fill="'+C.green+'" style="color:'+C.green+'"><title>区域总部</title></circle>';
+    if(!points.length)arcs+='<text x="180" y="78" text-anchor="middle" class="world-label" style="font-size:10px">暂无已定位的'+(dir==='out'?'出站':'入站')+'会话</text>';
+    if(pending)arcs+='<text x="354" y="144" text-anchor="end" class="world-label">待定位 '+pending+' 条</text>';
+    return '<svg viewBox="0 0 360 150" preserveAspectRatio="none" aria-label="'+(dir==='out'?'出站':'入站')+'世界流量地图">'+this.base()+arcs+'</svg>';
+  },
+  render(flow){
+    const g=this.groups(flow||{}),outBytes=g.out.reduce((n,x)=>n+x.bytes,0),inBytes=g.in.reduce((n,x)=>n+x.bytes,0);
+    $('worldOut').innerHTML=this.map('out',g.out,g.pending.out);$('worldIn').innerHTML=this.map('in',g.in,g.pending.in);
+    $('worldOutMeta').textContent=g.out.length+' 地 · '+fmtBytes(outBytes);$('worldInMeta').textContent=g.in.length+' 地 · '+fmtBytes(inBytes);
+    const pending=g.pending.out+g.pending.in;
+    $('worldGeoState').textContent=flow&&flow._real?(flow.geo?'GeoIP '+flow.geo.resolved+' · 待定位 '+pending:(pending?'待 GeoIP '+pending:'会话地理字段')):'演示地理数据';
+    $('worldGeoState').style.color=pending?'var(--amber)':'var(--cyan)';
+  }
+};
 
 /* 从会话 / NetFlow 字段中自动识别资产类型并分别聚合 TOP。 */
 const AssetTraffic={
@@ -3034,12 +3224,13 @@ $('assetTopTabs').onclick=function(e){const t=e.target.closest&&e.target.closest
 
 let flowPanelMode=localStorage.getItem('netcockpit.flow.view')||'flow';
 function applyFlowPanel(){
-  const flow=flowPanelMode==='flow';
-  $('flowView').hidden=!flow; $('ifView').hidden=flow;
-  $('flowViewBtn').classList.toggle('on',flow); $('ifViewBtn').classList.toggle('on',!flow);
+  const flow=flowPanelMode==='flow',interfaces=flowPanelMode==='interfaces',world=flowPanelMode==='world';
+  $('flowView').hidden=!flow;$('ifView').hidden=!interfaces;$('worldView').hidden=!world;
+  $('flowViewBtn').classList.toggle('on',flow);$('ifViewBtn').classList.toggle('on',interfaces);$('worldViewBtn').classList.toggle('on',world);
 }
 $('flowViewBtn').onclick=function(){ flowPanelMode='flow';localStorage.setItem('netcockpit.flow.view',flowPanelMode);applyFlowPanel(); };
 $('ifViewBtn').onclick=function(){ flowPanelMode='interfaces';localStorage.setItem('netcockpit.flow.view',flowPanelMode);applyFlowPanel(); };
+$('worldViewBtn').onclick=function(){ flowPanelMode='world';localStorage.setItem('netcockpit.flow.view',flowPanelMode);applyFlowPanel(); };
 applyFlowPanel();
 function renderTopo(t){
   const nodes = t.nodes, map = {};
@@ -3197,6 +3388,7 @@ async function tick(force){
       if(autoRoute.flow && !sessionFlow)d.flow=autoRoute.flow;
       if(autoRoute.alerts&&autoRoute.alerts.length)d.alerts=autoRoute.alerts;
     }
+    if(d.flow&&GeoIPAdapter.cfg.on)await GeoIPAdapter.enrich(d.flow);
     renderKPI(d); renderSecScore(d.secScore); renderSecTrend(d.secTrend);
     renderSecTop(d.secTop); renderList('secRisk', d.secRisk);
     renderBand(d.band); renderTopo(d.topo); renderLink(d.link); renderFlow(d.flow); AssetTraffic.render(d.assetTraffic,d.flow);
@@ -3212,8 +3404,9 @@ async function tick(force){
     const fazErr = FazAdapter.cfg.on ? (FazAdapter.errors[0] || '') : '';
     const sessErr = SessionAdapter.cfg.on ? (SessionAdapter.errors[0] || '') : '';
     const autoErr = AutoSourceAdapter.cfg.on ? (AutoSourceAdapter.errors[0] || '') : '';
-    $('srcDot').className = 'dot ' + (err ? 'bad' : (fazErr||sessErr||autoErr) ? 'warn' : p1>1 ? 'bad' : p1 ? 'warn' : '');
-    $('srcDot').title = err || fazErr || sessErr || autoErr || '数据源正常';
+    const geoErr = GeoIPAdapter.cfg.on ? (GeoIPAdapter.errors[0] || '') : '';
+    $('srcDot').className = 'dot ' + (err ? 'bad' : (fazErr||sessErr||autoErr||geoErr) ? 'warn' : p1>1 ? 'bad' : p1 ? 'warn' : '');
+    $('srcDot').title = err || fazErr || sessErr || autoErr || geoErr || '数据源正常';
     let hostTxt = err ? '数据源异常' : (ZabbixAdapter.live ? 'Zabbix 实时' : '演示基线');
     if (faz) hostTxt += ' · FortiAnalyzer 实时';
     else if (fazErr) hostTxt += ' · FortiAnalyzer 降级';
@@ -3221,8 +3414,9 @@ async function tick(force){
     else if (sessErr) hostTxt += ' · 会话流降级';
     if (autoRoute) hostTxt += ' · 自动分流 '+autoRoute.kind;
     else if (autoErr) hostTxt += ' · 自动分流待检查';
+    if (GeoIPAdapter.cfg.on) hostTxt += geoErr ? ' · GeoIP 降级' : ' · GeoIP 已启用';
     $('srcHost').textContent = hostTxt;
-    $('srcHost').title = (err || fazErr || sessErr || autoErr) ? [err, fazErr, sessErr, autoErr].filter(Boolean).join('｜') : '';
+    $('srcHost').title = (err || fazErr || sessErr || autoErr || geoErr) ? [err, fazErr, sessErr, autoErr, geoErr].filter(Boolean).join('｜') : '';
   }catch(e){
     $('srcDot').className = 'dot bad';
     $('srcHost').textContent = '刷新异常';
@@ -3989,12 +4183,36 @@ $('sessTest').onclick=async function(){
   $('sessMsg').textContent='正在读取会话…';
   const flow=await SessionAdapter.fetch(); SessionAdapter.cfg.on=was;
   if (flow){
+    if(GeoIPAdapter.cfg.on)await GeoIPAdapter.enrich(flow);
     $('sessMsg').innerHTML='<span style="color:var(--green)">✓ 接口可用</span> · '+
       flow.totalSessions.toLocaleString()+' 会话 · '+fmtBytes(flow.totalBytes)+' · '+flow.devices+' 台设备';
     renderFlow(flow);
   }else $('sessMsg').innerHTML='<span style="color:var(--red)">✕ '+esc(SessionAdapter.errors[0]||'未取到会话')+'</span>';
 };
 sessSync();
+
+/* GeoIP REST：对会话中缺失经纬度的公网 IP 做内存缓存补全。 */
+function geoIpSync(){
+  const c=GeoIPAdapter.cfg;
+  $('geoIpOn').classList.toggle('on',!!c.on);$('geoIpOff').classList.toggle('on',!c.on);
+  $('geoIpEp').value=c.ep||'';$('geoIpToken').value=c.token||'';
+}
+function geoIpRead(){
+  const old=GeoIPAdapter.cfg.ep;
+  GeoIPAdapter.cfg.ep=($('geoIpEp').value||'').trim();GeoIPAdapter.cfg.token=($('geoIpToken').value||'').trim();
+  if(old!==GeoIPAdapter.cfg.ep)GeoIPAdapter.cache.clear();GeoIPAdapter.save();
+}
+$('geoIpOn').onclick=function(){geoIpRead();if(GeoIPAdapter.cfg.ep.indexOf('{ip}')<0){$('geoIpMsg').innerHTML='<span style="color:var(--red)">地址模板必须包含 {ip}</span>';return;}GeoIPAdapter.cfg.on=true;GeoIPAdapter.save();geoIpSync();tick(true);};
+$('geoIpOff').onclick=function(){GeoIPAdapter.cfg.on=false;GeoIPAdapter.save();geoIpSync();tick(true);};
+$('geoIpSave').onclick=function(){geoIpRead();$('geoIpMsg').innerHTML='<span style="color:var(--green)">✓ GeoIP 配置已保存</span>，Token 仅保存在当前标签页。';};
+$('geoIpTest').onclick=async function(){
+  geoIpRead();GeoIPAdapter.cache.delete('8.8.8.8');
+  if(GeoIPAdapter.cfg.ep.indexOf('{ip}')<0){$('geoIpMsg').innerHTML='<span style="color:var(--red)">地址模板必须包含 {ip}</span>';return;}
+  $('geoIpMsg').textContent='正在定位 8.8.8.8…';
+  try{const p=await GeoIPAdapter.lookup('8.8.8.8');$('geoIpMsg').innerHTML='<span style="color:var(--green)">✓ 定位成功</span> · '+esc(p.country)+' · '+p.lat.toFixed(4)+', '+p.lng.toFixed(4);}
+  catch(e){$('geoIpMsg').innerHTML='<span style="color:var(--red)">✕ '+esc(e.message||String(e))+'</span> · 请检查 CORS、Token 与返回字段。';}
+};
+geoIpSync();
 
 /* 统一 REST 数据入口 */
 function autoSync(){
@@ -4177,10 +4395,11 @@ document.querySelectorAll('#drawer .tabs .t').forEach(function(el){
  *     window.Netcockpit.setPoints(...) 注入点位；其它方法见下方注释
  * ======================================================================== */
 window.Netcockpit = {
-  version : '1.8.0',
+  version : '1.9.0',
   map     : MapLayer,
   asset   : ASSET,
   sessions: SessionAdapter,
+  geoip   : GeoIPAdapter,
   router  : DataRouter,
   customModules: CustomModules,
   textEditor: TextEditor,
@@ -4232,6 +4451,7 @@ $('lastSync').setAttribute('aria-live', 'polite');
 $('zbxMsg').setAttribute('aria-live', 'polite');
 $('fazMsg').setAttribute('aria-live', 'polite');
 $('sessMsg').setAttribute('aria-live', 'polite');
+$('geoIpMsg').setAttribute('aria-live', 'polite');
 $('autoMsg').setAttribute('aria-live', 'polite');
 $('geoGoogleMsg').setAttribute('aria-live', 'polite');
 tick(true);
