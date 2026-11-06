@@ -149,14 +149,16 @@ body[data-view="paged"] #pagebar{display:flex}
 .ptab.on{color:#06121f;background:var(--cyan);border-color:var(--cyan);box-shadow:var(--glow)}
 .pbar-hint{font-size:11px;color:var(--txt-3);margin-left:auto}
 #execSummary{display:none;margin:6px 14px 8px;padding:10px 14px;border:1px solid var(--line-2);border-radius:12px;
-  background:linear-gradient(90deg,rgba(34,211,238,.11),rgba(11,26,48,.76));grid-template-columns:220px 1fr repeat(3,170px);gap:12px;align-items:center}
+  background:linear-gradient(90deg,rgba(34,211,238,.11),rgba(11,26,48,.76));grid-template-columns:220px minmax(320px,1fr) repeat(5,130px);gap:12px;align-items:center}
 body[data-view="paged"][data-page="exec"] #execSummary{display:grid}
 .exec-state{display:flex;align-items:center;gap:10px}
 .exec-state i{width:12px;height:12px;border-radius:50%;background:var(--green);box-shadow:0 0 16px currentColor;color:var(--green)}
 .exec-state b{font-size:22px;display:block}.exec-state span,.exec-decision span{font-size:10.5px;color:var(--txt-3)}
 .exec-decision b{font-size:14px;color:var(--txt);display:block;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exec-decision span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .exec-k{border-left:1px solid var(--line);padding-left:12px}.exec-k span{font-size:10px;color:var(--txt-3);display:block}
 .exec-k b{font-size:20px;color:var(--cyan)}
+.ptab.tour-on{color:#06121f;background:var(--green);border-color:var(--green);box-shadow:0 0 16px rgba(34,197,94,.28)}
 /* 分屏：列包裹层打平，面板直接参与网格重排 */
 body[data-view="paged"] #body{
   display:grid;grid-template-columns:repeat(auto-fit,minmax(500px,1fr));
@@ -527,16 +529,19 @@ body.editing .edit-tip{display:block}
     <div class="ptab on" data-page="exec">区域总览</div>
     <div class="ptab" data-page="net">网络运行</div>
     <div class="ptab" data-page="sec">网络安全</div>
+    <div class="ptab" id="btnTour">▶ 自动巡屏</div>
     <div class="ptab" id="btnDual">双屏展示</div>
-    <div class="pbar-hint">单屏可切换专题；双屏将当前窗口设为网络运行，并打开安全副屏</div>
+    <div class="pbar-hint">自动巡屏每 18 秒轮播专题；双屏将当前窗口设为网络运行，并打开安全副屏</div>
   </div>
 
   <div id="execSummary" aria-label="领导决策摘要">
     <div class="exec-state"><i id="execDot"></i><div><b id="execState">区域整体稳定</b><span id="execGrade">区域网络健康 A</span></div></div>
-    <div class="exec-decision"><b id="execDecision">区域内暂无影响业务的重大异常</b><span>总部关注：受影响站点、核心业务、处置优先级与责任闭环</span></div>
+    <div class="exec-decision"><b id="execDecision">区域内暂无影响业务的重大异常</b><span id="execAction">值班建议：保持观察 · 8 秒自动刷新</span></div>
     <div class="exec-k"><span>链路健康</span><b id="execHealth">--%</b></div>
     <div class="exec-k"><span>业务可用</span><b id="execSla">--%</b></div>
+    <div class="exec-k"><span>影响范围</span><b id="execImpact">--</b></div>
     <div class="exec-k"><span>P1 紧急事项</span><b id="execP1">--</b></div>
+    <div class="exec-k"><span>处置闭环</span><b id="execClosure">--</b></div>
   </div>
 
   <!-- ===================== 主体 ===================== -->
@@ -3115,6 +3120,9 @@ function renderExecSummary(d){
   const sla=Number(d&&d.kpi&&d.kpi[5]&&String(d.kpi[5].v).replace(/,/g,''))||0;
   const p1=(d.alerts||[]).filter(function(x){return x.lv==='P1';}).length;
   const worst=(d.sites||[]).slice().sort(function(a,b){return a.health-b.health;})[0];
+  const impactSites=(d.sites||[]).filter(function(x){return Number(x.health)<94;}).length;
+  const impactBiz=(d.sla||[]).filter(function(x){return x.bad||Number(x.v)<99.5;}).length;
+  const tickets=d.ticket||[],closed=tickets.filter(function(x){return /已关闭|已完成/.test(String(x.v||''));}).length;
   let state='区域整体稳定',grade='区域网络健康 A',color='var(--green)';
   if(p1>=3||health<94||sla<99.8){state='需要关注';grade='存在需优先处置事项';color='var(--red)';}
   else if(p1||health<97||sla<99.95){state='轻度波动';grade='业务总体不受影响';color='var(--amber)';}
@@ -3122,10 +3130,24 @@ function renderExecSummary(d){
   $('execDot').style.background=color;$('execDot').style.color=color;
   $('execHealth').textContent=(health?health.toFixed(1):'--')+'%';
   $('execSla').textContent=(sla?sla.toFixed(3):'--')+'%';$('execP1').textContent=p1+' 项';
+  $('execImpact').textContent=(impactSites||impactBiz)?impactSites+'站/'+impactBiz+'业务':'无';
+  $('execImpact').style.color=(impactSites||impactBiz)?'var(--amber)':'var(--green)';
+  $('execClosure').textContent=tickets.length?closed+' / '+tickets.length:'--';
+  $('execClosure').style.color=closed===tickets.length&&tickets.length?'var(--green)':closed?'var(--cyan)':'var(--amber)';
   let decision='区域内暂无影响业务的重大异常';
-  if(p1&&d.secRisk&&d.secRisk[0])decision='优先处置：'+String(d.secRisk[0].t||'P1 紧急事项');
-  else if(worst&&worst.health<94)decision='关注站点：'+worst.name+' · 健康度 '+worst.health+'%';
+  let action='值班建议：保持观察 · 8 秒自动刷新';
+  if(p1&&d.secRisk&&d.secRisk[0]){
+    decision='优先处置：'+String(d.secRisk[0].t||'P1 紧急事项');
+    const first=(d.alerts||[]).find(function(x){return x.lv==='P1';});
+    action='责任：'+String(first&&first.g||'网络与安全组')+' · 目标：15 分钟内恢复、隔离或完成业务降级';
+  }else if(worst&&worst.health<94){
+    decision='关注站点：'+worst.name+' · 健康度 '+worst.health+'%';
+    action='责任：属地网络组 · 建议：检查站点上联、边界设备与运营商线路';
+  }else if(impactBiz){
+    action='责任：应用组 · 建议：核查低于 99.5% 的业务及其网络依赖';
+  }
   $('execDecision').textContent=decision;
+  $('execAction').textContent=action;
 }
 function renderSevMap(){
   $('sevMap').innerHTML =
@@ -3214,9 +3236,11 @@ async function tick(force){
 /* ==========================================================================
  *  视图模式：单页集成 / 分屏预览（多页）—— 可切换预览，便于现场拍板
  * ======================================================================== */
-const VIEW_KEY = 'netcockpit.view', PAGE_KEY = 'netcockpit.page';
+const VIEW_KEY = 'netcockpit.view', PAGE_KEY = 'netcockpit.page', TOUR_KEY='netcockpit.tour';
+const TOUR_SECONDS=18;
 let viewMode = localStorage.getItem(VIEW_KEY) || 'single';   // single | paged
 let viewPage = localStorage.getItem(PAGE_KEY) || 'exec';     // exec | net | sec
+let tourOn=localStorage.getItem(TOUR_KEY)==='1',tourRemain=TOUR_SECONDS;
 if(viewPage==='cap')viewPage='exec';                         // 兼容旧版“业务容量”页
 if(!localStorage.getItem('netcockpit.leader-view.v1')){
   viewMode='paged';viewPage='exec';
@@ -3234,6 +3258,18 @@ function applyView(){
   document.querySelectorAll('#pagebar .ptab').forEach(function(t){
     t.classList.toggle('on', t.dataset.page === viewPage);
   });
+  renderTourControl();
+}
+function renderTourControl(){
+  const b=$('btnTour');if(!b)return;
+  b.textContent=tourOn?'■ 巡屏 '+tourRemain+'s':'▶ 自动巡屏';
+  b.classList.toggle('tour-on',tourOn);
+  b.setAttribute('aria-pressed',tourOn?'true':'false');
+}
+function setTour(on){
+  tourOn=!!on;tourRemain=TOUR_SECONDS;localStorage.setItem(TOUR_KEY,tourOn?'1':'0');
+  if(tourOn&&viewMode!=='paged'){viewMode='paged';localStorage.setItem(VIEW_KEY,viewMode);}
+  applyView();
 }
 /* 切换视图/页面后强制重绘：被隐藏的面板此前可能以 0 宽绘制图表 */
 function rerender(){
@@ -3241,19 +3277,28 @@ function rerender(){
   tick(true).finally(function(){ paused = wasPaused; });
 }
 function setView(m){ viewMode = m; localStorage.setItem(VIEW_KEY, m); applyView(); rerender(); }
-function setPage(p){ viewPage = p; localStorage.setItem(PAGE_KEY, p); applyView(); rerender(); }
+function setPage(p){ viewPage = p; tourRemain=TOUR_SECONDS; localStorage.setItem(PAGE_KEY, p); applyView(); rerender(); }
 document.getElementById('btnView').onclick = function(){
   setView(viewMode === 'paged' ? 'single' : 'paged');
 };
 document.querySelectorAll('#pagebar .ptab').forEach(function(t){
-  if(t.id==='btnDual')return;
+  if(t.id==='btnDual'||t.id==='btnTour')return;
   t.onclick = function(){ setPage(t.dataset.page); };
 });
+$('btnTour').onclick=function(){setTour(!tourOn);};
 $('btnDual').onclick=function(){
   setView('paged');setPage('net');
   const u=new URL(location.href);u.searchParams.set('view','paged');u.searchParams.set('page','sec');u.searchParams.set('screen','security');
   window.open(u.toString(),'netcockpit-security','width=1920,height=1080');
 };
+setInterval(function(){
+  if(!tourOn||document.hidden||document.body.classList.contains('editing'))return;
+  tourRemain-=1;
+  if(tourRemain<=0){
+    const pages=['exec','net','sec'],i=pages.indexOf(viewPage);
+    setPage(pages[(i+1+pages.length)%pages.length]);
+  }else renderTourControl();
+},1000);
 applyView();
 
 function renderSecTop(t){
@@ -4132,7 +4177,7 @@ document.querySelectorAll('#drawer .tabs .t').forEach(function(el){
  *     window.Netcockpit.setPoints(...) 注入点位；其它方法见下方注释
  * ======================================================================== */
 window.Netcockpit = {
-  version : '1.7.0',
+  version : '1.8.0',
   map     : MapLayer,
   asset   : ASSET,
   sessions: SessionAdapter,
@@ -4195,16 +4240,19 @@ tick(true);
    ?drawer=geo  → 打开「地图与数据」页签
    ?drawer=zbx  → 打开「数据接入」页签
    ?view=paged&page=exec|net|sec → 固定打开领导总览 / 网络运行 / 网络安全专题
+   ?tour=1      → 启动 18 秒自动巡屏
    ?zbx=1|0     → 启动时强制 实时 / 演示模式（优先级高于本地保存值） */
 (function(){
   const q = new URLSearchParams(location.search);
-  const d = q.get('drawer'), z = q.get('zbx'), v=q.get('view'), p=q.get('page');
+  const d = q.get('drawer'), z = q.get('zbx'), v=q.get('view'), p=q.get('page'), tour=q.get('tour');
   if (z !== null){
     ZabbixAdapter.live = z === '1' || z === 'live';
     localStorage.setItem(ZKEY+'live', ZabbixAdapter.live ? '1' : '0');
   }
   if(v==='single'||v==='paged')viewMode=v;
   if(['exec','net','sec'].indexOf(p)>-1)viewPage=p;
+  if(tour==='1'||tour==='on')setTour(true);
+  else if(tour==='0'||tour==='off')setTour(false);
   applyView();
   if (!d) return;
   $('drawer').classList.add('show');
