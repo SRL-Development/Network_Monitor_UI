@@ -455,6 +455,15 @@ body.paused .flow{animation-play-state:paused}
 .fld textarea{height:190px;line-height:1.5}
 .fld .row2{display:flex;gap:6px}
 .fld .row2 .btn{flex:1;text-align:center;font-size:11px;padding:5px 0}
+.device-note{border:1px solid rgba(34,211,238,.24);border-radius:8px;padding:8px 9px;background:rgba(34,211,238,.05);font-size:10px;color:var(--txt-2);line-height:1.65;margin-bottom:10px}
+.device-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-height:220px;overflow:auto}
+.device-card{display:grid;grid-template-columns:1fr auto;gap:5px 8px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:rgba(6,20,38,.72);cursor:pointer}
+.device-card:hover,.device-card.on{border-color:var(--cyan);background:rgba(34,211,238,.07)}
+.device-card b{font-size:11px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.device-card em{font-style:normal;font-size:9px;color:var(--cyan);border:1px solid var(--line);padding:1px 5px;border-radius:8px}
+.device-card span{grid-column:1/-1;color:var(--txt-3);font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.device-empty{border:1px dashed var(--line-2);border-radius:8px;padding:16px 8px;text-align:center;color:var(--txt-3);font-size:10.5px;line-height:1.7}
+.advanced-off{display:none!important}
 
 /* 指标映射行 */
 .ch{border:1px solid var(--line);border-radius:6px;padding:5px 6px;margin-bottom:5px;background:rgba(3,12,26,.45)}
@@ -757,8 +766,9 @@ body.editing .edit-tip{display:block}
   <div id="drawer">
     <div class="tabs">
       <div class="t on" data-tp="mod">模块管理</div>
+      <div class="t" data-tp="device">设备台账</div>
       <div class="t" data-tp="geo">地图与数据</div>
-      <div class="t" data-tp="zbx">数据接入</div>
+      <div class="t" data-tp="zbx">Zabbix</div>
     </div>
 
     <div class="tp on" id="tpMod">
@@ -858,6 +868,41 @@ body.editing .edit-tip{display:block}
       <div id="sevMap"></div>
     </div>
 
+    <div class="tp" id="tpDevice">
+      <div class="device-note">
+        大屏只展示这里登记并启用的设备，不再根据名称猜设备类型。Zabbix 主机名必须与监控系统中的 <code>host</code> 或可见名称一致。
+      </div>
+      <div class="device-list" id="deviceList"></div>
+      <div class="fld">
+        <label>设备名称 / Zabbix 主机名</label>
+        <div class="row2"><input id="devName" placeholder="例如：HQ-ASA-01" /><input id="devZbxHost" placeholder="Zabbix host / name" /></div>
+      </div>
+      <div class="fld">
+        <label>分类 / 厂商</label>
+        <div class="row2">
+          <select id="devType"><option value="firewall">防火墙</option><option value="loadbalancer">负载均衡</option><option value="switch">交换机</option><option value="ap">无线 AP</option><option value="server">服务器</option><option value="storage">存储</option><option value="other">其他</option></select>
+          <select id="devVendor"><option value="Cisco">Cisco</option><option value="Fortinet">Fortinet</option><option value="F5">F5</option><option value="H3C">H3C</option><option value="Huawei">Huawei</option><option value="Dell">Dell</option><option value="Other">其他</option></select>
+        </div>
+      </div>
+      <div class="fld">
+        <label>型号 / 所属区域</label>
+        <div class="row2"><input id="devModel" placeholder="ASA / FTD / BIG-IP / FortiGate…" /><input id="devSite" placeholder="总部 / 工厂 / 分支…" /></div>
+      </div>
+      <div class="fld">
+        <label>会话总数 item key（可留空）</label>
+        <input id="devSessionKey" placeholder="填写 Zabbix 中实际 item key 或唯一子串" />
+        <div class="hint">可映射 active connections / sessions。这里只显示会话总数，不会伪装成源 IP → 目的 IP 明细。</div>
+      </div>
+      <div class="fld">
+        <label>入口 / 出口流量 item key（可留空）</label>
+        <div class="row2"><input id="devInKey" placeholder="入口 key 子串" /><input id="devOutKey" placeholder="出口 key 子串" /></div>
+      </div>
+      <div class="fld"><label><input id="devEnabled" type="checkbox" checked style="width:auto;margin-right:6px" />在大屏中启用此设备</label></div>
+      <div class="row2 fld"><div class="btn" id="devNew">+ 新建设备</div><div class="btn" id="devSave">保存设备</div><div class="btn" id="devDelete">删除</div></div>
+      <div class="row2 fld"><div class="btn" id="devExport">导出台账 JSON</div><div class="btn" id="devImport">导入台账</div><input type="file" id="devImportFile" accept="application/json,.json" hidden /></div>
+      <div class="hint" id="devMsg">先登记实际设备；保存后，Zabbix 实时模式会按主机名和 item key 对应读取。</div>
+    </div>
+
     <div class="tp" id="tpZbx">
       <div class="fld">
         <label>数据模式</label>
@@ -914,6 +959,12 @@ body.editing .edit-tip{display:block}
       </div>
 
       <div class="fld">
+        <label>简化模式</label>
+        <div class="row2"><div class="btn" id="advancedToggle">显示高级数据源</div><div class="btn" id="openDeviceBook">打开设备台账</div></div>
+        <div class="hint">默认只使用 Zabbix。只有将来确实需要逐条源/目的会话时，再启用高级数据源。</div>
+      </div>
+
+      <div class="fld advanced-source" id="fazSection">
         <label>攻击与拦截 · FortiAnalyzer</label>
         <div class="row2">
           <div class="btn" id="fazOn">启用 FortiAnalyzer</div>
@@ -986,7 +1037,7 @@ body.editing .edit-tip{display:block}
         <div class="hint" id="fazMsg">尚未接入。取到日志后会自动覆盖「攻击趋势 / 攻击类型 TOP / 高风险清单 / 安全事件 KPI」。</div>
       </div>
 
-      <div class="fld">
+      <div class="fld advanced-source" id="sessionSection">
         <label>主要设备会话 · REST 数据源</label>
         <div class="row2">
           <div class="btn" id="sessOn">启用会话接口</div>
@@ -1007,7 +1058,7 @@ body.editing .edit-tip{display:block}
         <div class="hint" id="sessMsg">兼容数组或 <code>data/result/items/rows/sessions</code> 包装。字段可用 <code>src/srcip</code>、<code>dst/dstip</code>、<code>device/devname</code>、<code>bytes/bytes_in/bytes_out</code>、<code>sessions/count</code>；提供 <code>asset_name</code> 与 <code>asset_type</code> 时，可自动归入服务器 / 存储 / 交换机 / AP 流量 TOP。</div>
       </div>
 
-      <div class="fld">
+      <div class="fld advanced-source" id="geoIpSection">
         <label>IP 地理定位 · GeoIP REST</label>
         <div class="row2">
           <div class="btn" id="geoIpOn">启用 GeoIP</div>
@@ -1028,7 +1079,7 @@ body.editing .edit-tip{display:block}
         <div class="hint" id="geoIpMsg">推荐使用企业内部 GeoIP 服务；模板必须包含 <code>{ip}</code>。返回字段支持 <code>lat/latitude</code>、<code>lng/lon/longitude</code>、<code>country/country_name</code>。未启用时也可由会话接口直接返回源/目的经纬度。</div>
       </div>
 
-      <div class="fld">
+      <div class="fld advanced-source" id="autoSection">
         <label>统一 REST 数据入口 · 自动甄别与分流</label>
         <div class="row2">
           <div class="btn" id="autoOn">启用自动分流</div>
@@ -1379,6 +1430,57 @@ const SecretStore = {
 
 /* 指标通道默认值：slot 决定接管哪块面板，下标决定接管该面板的第几行。
    key 留空 = 不接管该行，继续用演示基线。用户可通过抽屉「指标映射」改。 */
+const DeviceCatalog = {
+  key:'netcockpit.devices.v1', selected:'', lastMetrics:null,
+  labels:{firewall:'防火墙',loadbalancer:'负载均衡',switch:'交换机',ap:'无线 AP',server:'服务器',storage:'存储',other:'其他'},
+  colors:{firewall:'#f43f5e',loadbalancer:'#a855f7',switch:'#22d3ee',ap:'#22c55e',server:'#3b82f6',storage:'#a855f7',other:'#f59e0b'},
+  devices(){
+    try{const a=JSON.parse(localStorage.getItem(this.key)||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}
+  },
+  save(a){localStorage.setItem(this.key,JSON.stringify(a));},
+  enabled(){return this.devices().filter(function(x){return x.enabled!==false;});},
+  findItem(items,frag){
+    frag=String(frag||'').trim();if(!frag)return null;
+    const exact=items.find(function(x){return String(x.key_||'')===frag;});
+    return exact||items.find(function(x){return String(x.key_||'').indexOf(frag)>-1;})||null;
+  },
+  async pull(adapter){
+    const defs=this.enabled().filter(function(x){return String(x.zbxHost||'').trim();});
+    if(!defs.length){this.lastMetrics={rows:[],matched:0};return this.lastMetrics;}
+    let hosts=await adapter.opt(adapter.call('host.get',{output:['hostid','host','name'],filter:{status:0},limit:10000}));
+    if(!hosts)hosts=[];
+    const byName={};hosts.forEach(function(h){byName[String(h.host||'').toLowerCase()]=h;byName[String(h.name||'').toLowerCase()]=h;});
+    const hostids=Array.from(new Set(defs.map(function(d){const h=byName[String(d.zbxHost||'').toLowerCase()];return h&&h.hostid;}).filter(Boolean)));
+    let items=[];
+    if(hostids.length)items=await adapter.opt(adapter.call('item.get',{output:['hostid','name','key_','lastvalue','units'],hostids:hostids,filter:{status:0},limit:5000}))||[];
+    const rows=defs.map(function(d){
+      const h=byName[String(d.zbxHost||'').toLowerCase()]||null;
+      const own=h?items.filter(function(i){return String(i.hostid)===String(h.hostid);}):[];
+      const ses=DeviceCatalog.findItem(own,d.sessionKey),inn=DeviceCatalog.findItem(own,d.inKey),out=DeviceCatalog.findItem(own,d.outKey);
+      return {id:d.id,name:d.name,type:d.type,vendor:d.vendor,model:d.model,site:d.site,zbxHost:d.zbxHost,hostid:h&&h.hostid,
+        session:ses?Number(ses.lastvalue):null,inValue:inn?Number(inn.lastvalue):null,outValue:out?Number(out.lastvalue):null,
+        sessionItem:ses&&ses.key_,inItem:inn&&inn.key_,outItem:out&&out.key_};
+    });
+    this.lastMetrics={rows:rows,matched:rows.filter(function(x){return x.hostid;}).length};return this.lastMetrics;
+  },
+  flow(metrics){
+    const defs=this.enabled(),rows=(metrics&&metrics.rows)||[],withSession=rows.filter(function(x){return isFinite(x.session);});
+    return {_real:true,aggregateOnly:true,
+      source:withSession.length?'Zabbix · 会话汇总':'Zabbix · 无会话明细',
+      totalSessions:withSession.reduce(function(n,x){return n+Number(x.session||0);},0),totalBytes:0,devices:defs.length,items:[],
+      note:withSession.length?'已取得会话总数，但 Zabbix 未提供逐条源/目的 IP。':'未映射到会话 item；当前只显示设备状态和常规指标。'};
+  },
+  healthRows(av){
+    const defs=this.enabled();if(!defs.length)return [];
+    const online=(av&&av.byHost)||{};
+    const groups={};defs.forEach(function(d){
+      const k=d.type||'other',g=groups[k]||(groups[k]={n:DeviceCatalog.labels[k]||'其他',total:0,online:0,known:0,c:DeviceCatalog.colors[k]||'#22d3ee'});
+      g.total++;const st=online[String(d.zbxHost||'').toLowerCase()];if(st!==undefined){g.known++;if(st)g.online++;}
+    });
+    return Object.keys(groups).map(function(k){const g=groups[k],health=g.known?100*g.online/g.known:0;return {n:g.n,total:g.total,online:g.online,health:health,c:g.c,d:g.known?('Zabbix 已识别 '+g.known+' 台'):'等待匹配 Zabbix 主机'};});
+  }
+};
+
 const CHANNEL_DEFAULT = [
   { slot:'cap', idx:0, label:'核心交换机 CPU',   key:'system.cpu.util[sw', agg:'avg', unit:'%',    scale:1 },
   { slot:'cap', idx:1, label:'核心交换机内存',   key:'vm.memory.utilization',                      agg:'avg', unit:'%',  scale:1 },
@@ -1522,12 +1624,12 @@ const ZabbixAdapter = {
   /* --- 真实数据拉取；任一分项失败只降级该项。d = 演示基线快照 --- */
   async pull(d){
     this.errors = [];
-    const [hosts, av, trg, ifs, met] = await Promise.all([
-      this.pullHosts(), this.pullAvail(), this.pullTriggers(), this.pullItems(), this.pullMetrics()
+    const [hosts, av, trg, ifs, met, devm] = await Promise.all([
+      this.pullHosts(), this.pullAvail(), this.pullTriggers(), this.pullItems(), this.pullMetrics(), DeviceCatalog.pull(this)
     ]);
     const snap = {};
     /* 五项全失败 → 视为整体失败，整份回退演示基线，避免半真半假的数据混进大屏 */
-    if (!hosts && !av && !trg && !ifs && !met) return null;
+    if (!hosts && !av && !trg && !ifs && !met && !(devm&&devm.matched)) return null;
     /* 分段落覆盖时，后一段必须基于「已生成的快照」而不是演示基线，否则会抹掉前一段的真实值 */
     let cur = d.kpi;
 
@@ -1632,6 +1734,13 @@ const ZabbixAdapter = {
         });
       }
     }
+    /* 7) 设备台账决定展示范围。Zabbix 只有汇总 item 时只给汇总，不生成虚假的源/目的会话。 */
+    if(DeviceCatalog.enabled().length){
+      snap.assetHealth=DeviceCatalog.healthRows(av);
+      snap.flow=DeviceCatalog.flow(devm);
+    }else{
+      snap.flow={_real:true,aggregateOnly:true,source:'Zabbix · 未建设备台账',totalSessions:0,totalBytes:0,devices:0,items:[],note:'请在设备台账登记要展示的设备。'};
+    }
     return snap;
   },
 
@@ -1667,10 +1776,12 @@ const ZabbixAdapter = {
       ['term', /(server|prod|office|vm|host)/i]
     ];
     const T = { fw:0, core:0, agg:0, term:0 }, O = { fw:0, core:0, agg:0, term:0 };
-    const byGroup = {}, names = [], downNames = [];
+    const byGroup = {}, byHost = {}, names = [], downNames = [];
     let online = 0, offline = 0;
     hs.forEach(function(h){
       const ok = (Number(h.available) === 1);      // 不可达(2)与未知(0)都算非正常
+      byHost[String(h.host||'').toLowerCase()]=ok;
+      if(h.name)byHost[String(h.name).toLowerCase()]=ok;
       if (ok) online++; else offline++;
       if (h.host) names.push(h.host);
       if (!ok && h.host) downNames.push(h.host);
@@ -1693,7 +1804,7 @@ const ZabbixAdapter = {
     const layers = Object.keys(T).map(function(k){
       return { k: k, t: T[k], o: O[k], rate: T[k] ? +(100 * O[k] / T[k]).toFixed(1) : null };
     }).filter(function(x){ return x.t > 0; });
-    return { online: online, offline: offline, byGroup: byGroup,
+    return { online: online, offline: offline, byGroup: byGroup, byHost:byHost,
              names: names, downNames: downNames, layers: layers };
   },
 
@@ -3219,7 +3330,7 @@ function renderFlow(f){
       '<span class="end">'+esc(x.src)+'</span><span class="arrow">→</span><span class="end">'+esc(x.dst)+'</span>'+
       '<span class="bar"><i style="width:'+Math.max(3,weight/mx*100).toFixed(1)+'%"></i></span>'+
       '<span class="val">'+esc(val)+'</span></div>';
-  }).join('') || '<div class="hint">暂无可识别的会话流向</div>';
+  }).join('') || '<div class="hint">'+esc(f.note||'暂无可识别的会话流向')+'</div>';
   WorldFlow.render(f);
 }
 
@@ -4529,6 +4640,48 @@ $('chList').onclick = function(e){
 };
 chList();
 
+/* 设备台账：设备范围、分类和 Zabbix 指标映射全部由用户维护，不根据名称猜测。 */
+function devReadForm(){
+  return {id:DeviceCatalog.selected||('dev-'+Date.now()),name:($('devName').value||'').trim(),zbxHost:($('devZbxHost').value||'').trim(),
+    type:$('devType').value,vendor:$('devVendor').value,model:($('devModel').value||'').trim(),site:($('devSite').value||'').trim(),
+    sessionKey:($('devSessionKey').value||'').trim(),inKey:($('devInKey').value||'').trim(),outKey:($('devOutKey').value||'').trim(),enabled:$('devEnabled').checked};
+}
+function devFill(d){
+  d=d||{};DeviceCatalog.selected=d.id||'';$('devName').value=d.name||'';$('devZbxHost').value=d.zbxHost||'';
+  $('devType').value=d.type||'firewall';$('devVendor').value=d.vendor||'Cisco';$('devModel').value=d.model||'';$('devSite').value=d.site||'';
+  $('devSessionKey').value=d.sessionKey||'';$('devInKey').value=d.inKey||'';$('devOutKey').value=d.outKey||'';$('devEnabled').checked=d.enabled!==false;
+  devRender();
+}
+function devRender(){
+  const a=DeviceCatalog.devices();
+  $('deviceList').innerHTML=a.map(function(d){return '<div class="device-card'+(d.id===DeviceCatalog.selected?' on':'')+'" data-id="'+esc(d.id)+'">'+
+    '<b>'+esc(d.name||d.zbxHost||'未命名设备')+'</b><em>'+(d.enabled===false?'未展示':esc(DeviceCatalog.labels[d.type]||'其他'))+'</em>'+
+    '<span>'+esc([d.vendor,d.model,d.site,d.zbxHost&&('Zabbix: '+d.zbxHost)].filter(Boolean).join(' · '))+'</span></div>';}).join('')||
+    '<div class="device-empty">尚未登记设备<br>请先添加 ASA / FTD / F5 / Fortinet 或其他实际设备</div>';
+}
+$('deviceList').onclick=function(e){const card=e.target.closest('.device-card');if(!card)return;const d=DeviceCatalog.devices().find(function(x){return x.id===card.dataset.id;});if(d)devFill(d);};
+$('devNew').onclick=function(){devFill(null);$('devMsg').textContent='正在新建设备，填完后点“保存设备”。';};
+$('devSave').onclick=function(){
+  const d=devReadForm();if(!d.name||!d.zbxHost){$('devMsg').innerHTML='<span style="color:var(--red)">设备名称和 Zabbix 主机名必须填写</span>';return;}
+  const a=DeviceCatalog.devices(),i=a.findIndex(function(x){return x.id===d.id;});if(i>-1)a[i]=d;else a.push(d);DeviceCatalog.save(a);DeviceCatalog.selected=d.id;devRender();
+  $('devMsg').innerHTML='<span style="color:var(--green)">✓ 已保存</span> · 实时模式将在下一次刷新按此映射读取。';tick(true);
+};
+$('devDelete').onclick=function(){
+  if(!DeviceCatalog.selected){$('devMsg').textContent='请先从列表选择要删除的设备。';return;}
+  const a=DeviceCatalog.devices().filter(function(x){return x.id!==DeviceCatalog.selected;});DeviceCatalog.save(a);devFill(null);$('devMsg').textContent='设备已从展示台账移除。';tick(true);
+};
+$('devExport').onclick=function(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(DeviceCatalog.devices(),null,2)],{type:'application/json'}));a.download='network-device-catalog.json';a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);};
+$('devImport').onclick=function(){$('devImportFile').click();};
+$('devImportFile').onchange=function(){const f=this.files&&this.files[0];if(!f)return;const rd=new FileReader();rd.onload=function(){try{const a=JSON.parse(rd.result);if(!Array.isArray(a))throw new Error('JSON 顶层必须是数组');DeviceCatalog.save(a);DeviceCatalog.selected='';devRender();$('devMsg').innerHTML='<span style="color:var(--green)">✓ 已导入 '+a.length+' 台设备</span>';tick(true);}catch(e){$('devMsg').innerHTML='<span style="color:var(--red)">导入失败：'+esc(e.message)+'</span>';}};rd.readAsText(f,'utf-8');this.value='';};
+devRender();
+
+/* 默认隐藏暂时用不到的 FAZ / 会话 REST / GeoIP / 自动分流，保留为未来扩展。 */
+let advancedShown=localStorage.getItem('netcockpit.advanced')==='1';
+function advancedSync(){document.querySelectorAll('.advanced-source').forEach(function(x){x.classList.toggle('advanced-off',!advancedShown);});$('advancedToggle').textContent=advancedShown?'收起高级数据源':'显示高级数据源';}
+$('advancedToggle').onclick=function(){advancedShown=!advancedShown;localStorage.setItem('netcockpit.advanced',advancedShown?'1':'0');advancedSync();};
+$('openDeviceBook').onclick=function(){const t=document.querySelector('#drawer .tabs .t[data-tp="device"]');if(t)t.click();};
+advancedSync();
+
 /* 抽屉页签切换 */
 document.querySelectorAll('#drawer .tabs .t').forEach(function(el){
   el.onclick = function(){
@@ -4545,7 +4698,7 @@ document.querySelectorAll('#drawer .tabs .t').forEach(function(el){
  *     window.Netcockpit.setPoints(...) 注入点位；其它方法见下方注释
  * ======================================================================== */
 window.Netcockpit = {
-  version : '2.0.0',
+  version : '2.1.0',
   map     : MapLayer,
   asset   : ASSET,
   sessions: SessionAdapter,
