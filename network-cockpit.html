@@ -628,8 +628,8 @@ body.editing .edit-tip{display:block}
 
       <div class="panel" data-mod="secRisk" data-page="exec sec" style="flex:1">
         <div class="p-h"><i class="bar"></i><span class="t">风险与防火墙变更</span><span class="en">Risk &amp; Change Audit</span>
-          <div class="r"><span class="chipbtn on" id="riskViewBtn">风险对象</span><span class="chipbtn" id="auditViewBtn">配置变更</span><i class="grip"></i></div></div>
-        <div class="p-b"><div id="riskView"><div class="list" id="secRisk"></div></div><div id="auditView" hidden><div class="audit-head"><b style="color:var(--cyan)">最近 24 小时</b><span class="audit-source" id="auditSource">演示基线</span></div><div class="audit-list" id="changeAudit"></div></div></div>
+          <div class="r"><span class="chipbtn on" id="riskViewBtn">风险对象</span><span class="chipbtn" id="auditViewBtn">配置变更</span><span class="chipbtn" id="vpnViewBtn">VPN 异常用户</span><i class="grip"></i></div></div>
+        <div class="p-b"><div id="riskView"><div class="list" id="secRisk"></div></div><div id="auditView" hidden><div class="audit-head"><b style="color:var(--cyan)">最近 24 小时</b><span class="audit-source" id="auditSource">演示基线</span></div><div class="audit-list" id="changeAudit"></div></div><div id="vpnRiskView" hidden><div class="audit-head"><b style="color:var(--red)">ASA / FTD VPN 认证异常</b><span class="audit-source" id="vpnRiskSource">演示基线</span></div><div class="audit-list" id="vpnRisk"></div></div></div>
       </div>
     </div>
 
@@ -669,8 +669,8 @@ body.editing .edit-tip{display:block}
       </div>
 
       <div class="panel" data-mod="link" data-page="exec net" style="flex:0 0 176px">
-        <div class="p-h"><i class="bar"></i><span class="t">主要设备会话与流量走向</span><span class="en">Sessions &amp; Traffic Flow</span>
-          <div class="r"><span class="chipbtn" id="flowViewBtn">会话流向</span><span class="chipbtn" id="ifViewBtn">接口排行</span><span class="chipbtn" id="worldViewBtn">全球流向</span><i class="grip"></i></div></div>
+        <div class="p-h"><i class="bar"></i><span class="t">外部网络出入站地图</span><span class="en">External Inbound &amp; Outbound</span>
+          <div class="r"><span class="chipbtn" id="worldViewBtn">出入站地图</span><span class="chipbtn" id="flowViewBtn">会话流向</span><span class="chipbtn" id="ifViewBtn">接口排行</span><i class="grip"></i></div></div>
         <div class="p-b">
           <div id="flowView">
             <div class="flow-summary"><span>会话<b id="flowSessions">--</b></span><span>流量<b id="flowBytes">--</b></span><span>设备<b id="flowDevices">--</b></span><span class="src" id="flowSource">演示基线</span></div>
@@ -906,6 +906,11 @@ body.editing .edit-tip{display:block}
         <label>配置修改审计 item key（可留空）</label>
         <input id="devAuditKey" placeholder="Zabbix 日志/文本 item key，例如 firewall.config.audit" />
         <div class="hint">设备的 syslog / audit log 先进入 Zabbix 日志项；大屏读取最近 24 小时记录。没有该数据时不会猜测修改人。</div>
+      </div>
+      <div class="fld">
+        <label>ASA / FTD VPN 认证日志 item key（可留空）</label>
+        <input id="devVpnKey" placeholder="例如 asa.vpn.auth.log" />
+        <div class="hint">识别 rejected / failed / denied 等异常认证，按用户名与公网来源 IP 聚合。建议日志包含 ASA 消息 ID、Username/User 和 IP。</div>
       </div>
       <div class="fld"><label><input id="devEnabled" type="checkbox" checked style="width:auto;margin-right:6px" />在大屏中启用此设备</label></div>
       <div class="row2 fld"><div class="btn" id="devNew">+ 新建设备</div><div class="btn" id="devSave">保存设备</div><div class="btn" id="devDelete">删除</div></div>
@@ -1479,21 +1484,22 @@ const DeviceCatalog = {
     const rows=defs.map(function(d){
       const h=byName[String(d.zbxHost||'').toLowerCase()]||null;
       const own=h?items.filter(function(i){return String(i.hostid)===String(h.hostid);}):[];
-      const ses=DeviceCatalog.findItem(own,d.sessionKey),inn=DeviceCatalog.findItem(own,d.inKey),out=DeviceCatalog.findItem(own,d.outKey),aud=DeviceCatalog.findItem(own,d.auditKey);
+      const ses=DeviceCatalog.findItem(own,d.sessionKey),inn=DeviceCatalog.findItem(own,d.inKey),out=DeviceCatalog.findItem(own,d.outKey),aud=DeviceCatalog.findItem(own,d.auditKey),vpn=DeviceCatalog.findItem(own,d.vpnKey);
       return {id:d.id,name:d.name,type:d.type,vendor:d.vendor,model:d.model,site:d.site,zbxHost:d.zbxHost,hostid:h&&h.hostid,
         session:ses?Number(ses.lastvalue):null,inValue:inn?Number(inn.lastvalue):null,outValue:out?Number(out.lastvalue):null,
-        sessionItem:ses&&ses.key_,inItem:inn&&inn.key_,outItem:out&&out.key_,auditItem:aud};
+        sessionItem:ses&&ses.key_,inItem:inn&&inn.key_,outItem:out&&out.key_,auditItem:aud,vpnItem:vpn};
     });
-    const auditById={};rows.forEach(function(r){if(r.auditItem)auditById[String(r.auditItem.itemid)]={device:r.name,item:r.auditItem};});
-    const audit=[];
-    for(const type of [2,4]){
-      const ids=Object.keys(auditById).filter(function(id){return Number(auditById[id].item.value_type)===type;});
-      if(!ids.length)continue;
-      const hist=await adapter.opt(adapter.call('history.get',{output:'extend',history:type,itemids:ids,time_from:Math.floor(Date.now()/1000)-86400,sortfield:'clock',sortorder:'DESC',limit:50}))||[];
-      hist.forEach(function(x){const m=auditById[String(x.itemid)];if(m)audit.push({device:m.device,clock:Number(x.clock)||0,message:String(x.value||'')});});
-    }
-    audit.sort(function(a,b){return b.clock-a.clock;});
-    this.lastMetrics={rows:rows,matched:rows.filter(function(x){return x.hostid;}).length,audit:audit.slice(0,30)};return this.lastMetrics;
+    const readLogs=async function(field){
+      const byId={};rows.forEach(function(r){if(r[field])byId[String(r[field].itemid)]={device:r.name,item:r[field]};});const out=[];
+      for(const type of [2,4]){
+        const ids=Object.keys(byId).filter(function(id){return Number(byId[id].item.value_type)===type;});if(!ids.length)continue;
+        const hist=await adapter.opt(adapter.call('history.get',{output:'extend',history:type,itemids:ids,time_from:Math.floor(Date.now()/1000)-86400,sortfield:'clock',sortorder:'DESC',limit:100}))||[];
+        hist.forEach(function(x){const m=byId[String(x.itemid)];if(m)out.push({device:m.device,clock:Number(x.clock)||0,message:String(x.value||'')});});
+      }
+      return out.sort(function(a,b){return b.clock-a.clock;});
+    };
+    const audit=await readLogs('auditItem'),vpn=await readLogs('vpnItem');
+    this.lastMetrics={rows:rows,matched:rows.filter(function(x){return x.hostid;}).length,audit:audit.slice(0,30),vpn:vpn};return this.lastMetrics;
   },
   flow(metrics){
     const defs=this.enabled(),rows=(metrics&&metrics.rows)||[],withSession=rows.filter(function(x){return isFinite(x.session);});
@@ -1517,6 +1523,16 @@ const DeviceCatalog = {
       const m=x.message,user=(m.match(/(?:user|username|admin|by)[=: ]+([\w.@-]+)/i)||[])[1]||'待解析';
       return {clock:x.clock,device:x.device,user:user,message:m,status:'待核验'};
     })};
+  },
+  vpn(metrics){
+    const raw=((metrics&&metrics.vpn)||[]).filter(function(x){return /(reject|fail|denied|invalid|lock|timeout|113005|113015|716039|611102|109006|失败|拒绝|异常)/i.test(x.message);});
+    const groups={};raw.forEach(function(x){
+      const m=x.message,user=(m.match(/(?:Username|Uname|User|user)\s*[=<:'"]+\s*([\w.@*?-]+)/i)||m.match(/for user\s+['"]?([^'"\s]+)/i)||[])[1]||'未知用户';
+      const ip=(m.match(/(?:user IP|IP address|IP)\s*[=:< ]+\s*((?:\d{1,3}\.){3}\d{1,3})/i)||m.match(/from\s+((?:\d{1,3}\.){3}\d{1,3})/i)||[])[1]||'未知来源';
+      const k=x.device+'|'+user+'|'+ip,g=groups[k]||(groups[k]={device:x.device,user:user,ip:ip,count:0,clock:0,message:m});g.count++;if(x.clock>g.clock){g.clock=x.clock;g.message=m;}
+    });
+    const items=Object.keys(groups).map(function(k){return groups[k];}).sort(function(a,b){return b.count-a.count||b.clock-a.clock;}).slice(0,20);
+    return {source:items.length?'Zabbix · ASA/FTD VPN 日志':'Zabbix · 未配置 VPN 认证日志',items:items};
   }
 };
 
@@ -1695,6 +1711,7 @@ const ZabbixAdapter = {
     else if(this.live){
       d.wan=SiteCatalog.view({rows:SiteCatalog.enabled()},true);
       d.changeAudit={source:'Zabbix 连接失败 · 无审计数据',items:[]};
+      d.vpnRisk={source:'Zabbix 连接失败 · 无 VPN 日志',items:[]};
       d.flow={_real:true,aggregateOnly:true,source:'Zabbix 连接失败',totalSessions:0,totalBytes:0,devices:DeviceCatalog.enabled().length,items:[],note:'实时数据源不可用，未使用演示会话替代。'};
     }
     this.lastSync = this.lastSync || Date.now();
@@ -1819,9 +1836,11 @@ const ZabbixAdapter = {
       snap.assetHealth=DeviceCatalog.healthRows(av);
       snap.flow=DeviceCatalog.flow(devm);
       snap.changeAudit=DeviceCatalog.audit(devm);
+      snap.vpnRisk=DeviceCatalog.vpn(devm);
     }else{
       snap.flow={_real:true,aggregateOnly:true,source:'Zabbix · 未建设备台账',totalSessions:0,totalBytes:0,devices:0,items:[],note:'请在设备台账登记要展示的设备。'};
       snap.changeAudit={source:'Zabbix · 未建设备台账',items:[]};
+      snap.vpnRisk={source:'Zabbix · 未建设备台账',items:[]};
     }
     snap.wan=SiteCatalog.view(sitem,true);
     return snap;
@@ -2964,7 +2983,7 @@ const Mock = {
   rnd:(a,b,d=1)=> +(a + Math.random()*(b-a)).toFixed(d),
   walk:(v,amp,min,max)=> Math.min(max, Math.max(min, v + (Math.random()-0.45)*amp)),
   build(){
-    const T = ++this.t, d = {kpi:[],band:{},secScore:{},secTrend:{},secTop:[],secRisk:[],changeAudit:null,flow:null,assetTraffic:null,
+    const T = ++this.t, d = {kpi:[],band:{},secScore:{},secTrend:{},secTop:[],secRisk:[],changeAudit:null,vpnRisk:null,flow:null,assetTraffic:null,
       link:[],sla:[],cap:[],zone:[],ticket:[],topo:{},alerts:[],assetHealth:[],infraRisk:[],wan:[],resilience:[],lifecycle:[],forecast:[],investment:[]};
 
     /* --- 全局 KPI（规模按实况：网络 318 · 服务器 30 · 存储 20）--- */
@@ -3168,6 +3187,11 @@ const Mock = {
       {clock:Math.floor(Date.now()/1000)-780,device:'HQ-FTD-01',user:'netops.zhang',message:'修改对象：访问策略 OUTSIDE-IN · 变更单 CHG-2026-1108',status:'已关联工单'},
       {clock:Math.floor(Date.now()/1000)-2460,device:'FGT-SITE-C',user:'admin.li',message:'修改对象：SD-WAN member 2 · 未发现工单号',status:'待核验'},
       {clock:Math.floor(Date.now()/1000)-5220,device:'F5-LTM-01',user:'svc_deploy',message:'修改对象：virtual server /Common/erp-vs',status:'自动部署'}
+    ]};
+    d.vpnRisk = {source:'演示基线',items:[
+      {clock:Math.floor(Date.now()/1000)-240,device:'HQ-ASA-VPN',user:'admin',ip:'198.51.100.24',count:18,message:'%ASA-6-716039 Authentication: rejected, Session Type: WebVPN'},
+      {clock:Math.floor(Date.now()/1000)-620,device:'HQ-ASA-VPN',user:'vpn.test',ip:'203.0.113.18',count:7,message:'%ASA-6-113015 AAA user authentication Rejected'},
+      {clock:Math.floor(Date.now()/1000)-1260,device:'DR-FTD-VPN',user:'unknown',ip:'192.0.2.42',count:4,message:'%ASA-6-611102 User authentication failed'}
     ]};
 
     /* --- 内部规划专题：不参加访客巡屏 --- */
@@ -3530,15 +3554,15 @@ const AssetTraffic={
 };
 $('assetTopTabs').onclick=function(e){const t=e.target.closest&&e.target.closest('.asset-top-tab');if(t)AssetTraffic.select(t.dataset.kind);};
 
-let flowPanelMode=localStorage.getItem('netcockpit.flow.view')||'flow';
+let flowPanelMode=localStorage.getItem('netcockpit.flow.view.v2')||'world';
 function applyFlowPanel(){
   const flow=flowPanelMode==='flow',interfaces=flowPanelMode==='interfaces',world=flowPanelMode==='world';
   $('flowView').hidden=!flow;$('ifView').hidden=!interfaces;$('worldView').hidden=!world;
   $('flowViewBtn').classList.toggle('on',flow);$('ifViewBtn').classList.toggle('on',interfaces);$('worldViewBtn').classList.toggle('on',world);
 }
-$('flowViewBtn').onclick=function(){ flowPanelMode='flow';localStorage.setItem('netcockpit.flow.view',flowPanelMode);applyFlowPanel(); };
-$('ifViewBtn').onclick=function(){ flowPanelMode='interfaces';localStorage.setItem('netcockpit.flow.view',flowPanelMode);applyFlowPanel(); };
-$('worldViewBtn').onclick=function(){ flowPanelMode='world';localStorage.setItem('netcockpit.flow.view',flowPanelMode);applyFlowPanel(); };
+$('flowViewBtn').onclick=function(){ flowPanelMode='flow';localStorage.setItem('netcockpit.flow.view.v2',flowPanelMode);applyFlowPanel(); };
+$('ifViewBtn').onclick=function(){ flowPanelMode='interfaces';localStorage.setItem('netcockpit.flow.view.v2',flowPanelMode);applyFlowPanel(); };
+$('worldViewBtn').onclick=function(){ flowPanelMode='world';localStorage.setItem('netcockpit.flow.view.v2',flowPanelMode);applyFlowPanel(); };
 applyFlowPanel();
 function renderTopo(t){
   const nodes = t.nodes, map = {};
@@ -3618,6 +3642,10 @@ function renderWan(a){
 function renderChangeAudit(a){
   a=a||{source:'无数据',items:[]};$('auditSource').textContent=a.source||'未知来源';
   $('changeAudit').innerHTML=(a.items||[]).map(function(x){const color=x.status==='待核验'?C.amber:C.green;return '<div class="audit-row"><time>'+esc(fmtTime((Number(x.clock)||0)*1000))+'</time><div><b>'+esc(x.device)+' · '+esc(x.user||'待解析')+'</b><span>'+esc(x.message)+'</span></div><em style="color:'+color+'">'+esc(x.status||'待核验')+'</em></div>';}).join('')||'<div class="device-empty">最近 24 小时没有可识别的配置审计记录<br>请在设备台账映射 Zabbix 日志 item key</div>';
+}
+function renderVpnRisk(a){
+  a=a||{source:'无数据',items:[]};$('vpnRiskSource').textContent=a.source||'未知来源';
+  $('vpnRisk').innerHTML=(a.items||[]).map(function(x){const c=Number(x.count)>=10?C.red:C.amber;return '<div class="audit-row" title="'+esc(x.message||'')+'"><time>'+esc(fmtTime((Number(x.clock)||0)*1000))+'</time><div><b>'+esc(x.user||'未知用户')+' · '+esc(x.ip||'未知来源')+'</b><span>'+esc(x.device||'ASA VPN')+' · '+esc(x.message||'认证失败')+'</span></div><em style="color:'+c+'">失败 '+Number(x.count||1)+' 次</em></div>';}).join('')||'<div class="device-empty">最近 24 小时没有可识别的 VPN 异常用户<br>请在设备台账映射 ASA / FTD VPN 认证日志 item key</div>';
 }
 function renderResilience(a){
   $('resilience').innerHTML=(a||[]).map(function(x){return '<div class="resilience-card"><span>'+esc(x.n)+'</span><b style="color:'+x.c+'">'+esc(x.v)+'</b><small>'+esc(x.d)+'</small></div>';}).join('');
@@ -3735,7 +3763,7 @@ async function tick(force){
     }
     if(d.flow&&GeoIPAdapter.cfg.on)await GeoIPAdapter.enrich(d.flow);
     renderKPI(d); renderSecScore(d.secScore); renderSecTrend(d.secTrend);
-    renderSecTop(d.secTop); renderList('secRisk', d.secRisk); renderChangeAudit(d.changeAudit);
+    renderSecTop(d.secTop); renderList('secRisk', d.secRisk); renderChangeAudit(d.changeAudit); renderVpnRisk(d.vpnRisk);
     renderBand(d.band); renderTopo(d.topo); renderLink(d.link); renderFlow(d.flow); AssetTraffic.render(d.assetTraffic,d.flow);
     renderSla(d.sla); renderCap(d.cap); renderList('ticket', d.ticket);
     renderAssetHealth(d.assetHealth);renderInfraRisk(d.infraRisk);renderWan(d.wan);
@@ -4730,12 +4758,12 @@ chList();
 function devReadForm(){
   return {id:DeviceCatalog.selected||('dev-'+Date.now()),name:($('devName').value||'').trim(),zbxHost:($('devZbxHost').value||'').trim(),
     type:$('devType').value,vendor:$('devVendor').value,model:($('devModel').value||'').trim(),site:($('devSite').value||'').trim(),
-    sessionKey:($('devSessionKey').value||'').trim(),inKey:($('devInKey').value||'').trim(),outKey:($('devOutKey').value||'').trim(),auditKey:($('devAuditKey').value||'').trim(),enabled:$('devEnabled').checked};
+    sessionKey:($('devSessionKey').value||'').trim(),inKey:($('devInKey').value||'').trim(),outKey:($('devOutKey').value||'').trim(),auditKey:($('devAuditKey').value||'').trim(),vpnKey:($('devVpnKey').value||'').trim(),enabled:$('devEnabled').checked};
 }
 function devFill(d){
   d=d||{};DeviceCatalog.selected=d.id||'';$('devName').value=d.name||'';$('devZbxHost').value=d.zbxHost||'';
   $('devType').value=d.type||'firewall';$('devVendor').value=d.vendor||'Cisco';$('devModel').value=d.model||'';$('devSite').value=d.site||'';
-  $('devSessionKey').value=d.sessionKey||'';$('devInKey').value=d.inKey||'';$('devOutKey').value=d.outKey||'';$('devAuditKey').value=d.auditKey||'';$('devEnabled').checked=d.enabled!==false;
+  $('devSessionKey').value=d.sessionKey||'';$('devInKey').value=d.inKey||'';$('devOutKey').value=d.outKey||'';$('devAuditKey').value=d.auditKey||'';$('devVpnKey').value=d.vpnKey||'';$('devEnabled').checked=d.enabled!==false;
   devRender();
 }
 function devRender(){
@@ -4772,9 +4800,10 @@ $('siteDelete').onclick=function(){if(!SiteCatalog.selected){$('siteMsg').textCo
 siteRender();
 
 let secRiskMode=localStorage.getItem('netcockpit.sec.riskview')||'risk';
-function applySecRiskMode(){const audit=secRiskMode==='audit';$('riskView').hidden=audit;$('auditView').hidden=!audit;$('riskViewBtn').classList.toggle('on',!audit);$('auditViewBtn').classList.toggle('on',audit);}
+function applySecRiskMode(){const audit=secRiskMode==='audit',vpn=secRiskMode==='vpn';$('riskView').hidden=audit||vpn;$('auditView').hidden=!audit;$('vpnRiskView').hidden=!vpn;$('riskViewBtn').classList.toggle('on',!audit&&!vpn);$('auditViewBtn').classList.toggle('on',audit);$('vpnViewBtn').classList.toggle('on',vpn);}
 $('riskViewBtn').onclick=function(){secRiskMode='risk';localStorage.setItem('netcockpit.sec.riskview',secRiskMode);applySecRiskMode();};
 $('auditViewBtn').onclick=function(){secRiskMode='audit';localStorage.setItem('netcockpit.sec.riskview',secRiskMode);applySecRiskMode();};
+$('vpnViewBtn').onclick=function(){secRiskMode='vpn';localStorage.setItem('netcockpit.sec.riskview',secRiskMode);applySecRiskMode();};
 applySecRiskMode();
 
 /* 默认隐藏暂时用不到的 FAZ / 会话 REST / GeoIP / 自动分流，保留为未来扩展。 */
@@ -4800,7 +4829,7 @@ document.querySelectorAll('#drawer .tabs .t').forEach(function(el){
  *     window.Netcockpit.setPoints(...) 注入点位；其它方法见下方注释
  * ======================================================================== */
 window.Netcockpit = {
-  version : '2.2.0',
+  version : '2.3.0',
   map     : MapLayer,
   asset   : ASSET,
   sessions: SessionAdapter,
