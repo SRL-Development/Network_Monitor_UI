@@ -464,6 +464,10 @@ body.paused .flow{animation-play-state:paused}
 .device-card span{grid-column:1/-1;color:var(--txt-3);font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .device-empty{border:1px dashed var(--line-2);border-radius:8px;padding:16px 8px;text-align:center;color:var(--txt-3);font-size:10.5px;line-height:1.7}
 .advanced-off{display:none!important}
+.audit-head{display:flex;align-items:center;gap:6px;margin-bottom:8px}.audit-head .chipbtn{flex:0 0 auto}.audit-source{margin-left:auto;font-size:9px;color:var(--txt-3)}
+.audit-list{display:flex;flex-direction:column;gap:6px;height:calc(100% - 30px);overflow:auto}
+.audit-row{display:grid;grid-template-columns:76px 1fr auto;gap:8px;align-items:center;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:rgba(13,31,55,.62)}
+.audit-row time{font-size:9px;color:var(--txt-3)}.audit-row b{display:block;font-size:10.5px;color:var(--txt)}.audit-row span{display:block;font-size:9px;color:var(--txt-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.audit-row em{font-style:normal;font-size:9.5px;color:var(--amber);white-space:nowrap}
 
 /* 指标映射行 */
 .ch{border:1px solid var(--line);border-radius:6px;padding:5px 6px;margin-bottom:5px;background:rgba(3,12,26,.45)}
@@ -623,9 +627,9 @@ body.editing .edit-tip{display:block}
       </div>
 
       <div class="panel" data-mod="secRisk" data-page="exec sec" style="flex:1">
-        <div class="p-h"><i class="bar"></i><span class="t">高风险对象</span><span class="en">High Risk Assets</span>
-          <div class="r"><i class="grip"></i></div></div>
-        <div class="p-b"><div class="list" id="secRisk"></div></div>
+        <div class="p-h"><i class="bar"></i><span class="t">风险与防火墙变更</span><span class="en">Risk &amp; Change Audit</span>
+          <div class="r"><span class="chipbtn on" id="riskViewBtn">风险对象</span><span class="chipbtn" id="auditViewBtn">配置变更</span><i class="grip"></i></div></div>
+        <div class="p-b"><div id="riskView"><div class="list" id="secRisk"></div></div><div id="auditView" hidden><div class="audit-head"><b style="color:var(--cyan)">最近 24 小时</b><span class="audit-source" id="auditSource">演示基线</span></div><div class="audit-list" id="changeAudit"></div></div></div>
       </div>
     </div>
 
@@ -723,7 +727,7 @@ body.editing .edit-tip{display:block}
       </div>
 
       <div class="panel" data-mod="wan" data-page="net" style="flex:1">
-        <div class="p-h"><i class="bar"></i><span class="t">运营商与广域网质量</span><span class="en">Carrier &amp; WAN</span>
+        <div class="p-h"><i class="bar"></i><span class="t">5 站点 · IPsec + SD-WAN</span><span class="en">Site Overlay Health</span>
           <div class="r"><span id="wanHealth">--%</span><i class="grip"></i></div></div>
         <div class="p-b"><div class="wan-list" id="wan"></div></div>
       </div>
@@ -767,6 +771,7 @@ body.editing .edit-tip{display:block}
     <div class="tabs">
       <div class="t on" data-tp="mod">模块管理</div>
       <div class="t" data-tp="device">设备台账</div>
+      <div class="t" data-tp="site">站点互联</div>
       <div class="t" data-tp="geo">地图与数据</div>
       <div class="t" data-tp="zbx">Zabbix</div>
     </div>
@@ -897,10 +902,28 @@ body.editing .edit-tip{display:block}
         <label>入口 / 出口流量 item key（可留空）</label>
         <div class="row2"><input id="devInKey" placeholder="入口 key 子串" /><input id="devOutKey" placeholder="出口 key 子串" /></div>
       </div>
+      <div class="fld">
+        <label>配置修改审计 item key（可留空）</label>
+        <input id="devAuditKey" placeholder="Zabbix 日志/文本 item key，例如 firewall.config.audit" />
+        <div class="hint">设备的 syslog / audit log 先进入 Zabbix 日志项；大屏读取最近 24 小时记录。没有该数据时不会猜测修改人。</div>
+      </div>
       <div class="fld"><label><input id="devEnabled" type="checkbox" checked style="width:auto;margin-right:6px" />在大屏中启用此设备</label></div>
       <div class="row2 fld"><div class="btn" id="devNew">+ 新建设备</div><div class="btn" id="devSave">保存设备</div><div class="btn" id="devDelete">删除</div></div>
       <div class="row2 fld"><div class="btn" id="devExport">导出台账 JSON</div><div class="btn" id="devImport">导入台账</div><input type="file" id="devImportFile" accept="application/json,.json" hidden /></div>
       <div class="hint" id="devMsg">先登记实际设备；保存后，Zabbix 实时模式会按主机名和 item key 对应读取。</div>
+    </div>
+
+    <div class="tp" id="tpSite">
+      <div class="device-note">用于 5 个单位之间的 IPsec + SD-WAN 展示。每个站点可以绑定 Zabbix 主机和隧道质量 item key；名称与线路都可修改。</div>
+      <div class="device-list" id="siteList"></div>
+      <div class="fld"><label>站点名称 / Zabbix 主机名</label><div class="row2"><input id="siteName" placeholder="例如：地区总部" /><input id="siteZbxHost" placeholder="Zabbix host / name" /></div></div>
+      <div class="fld"><label>主线路 / 备线路</label><div class="row2"><input id="sitePrimary" placeholder="电信 Internet" /><input id="siteBackup" placeholder="联通 Internet" /></div></div>
+      <div class="fld"><label>IPsec 在线隧道数 / 期望隧道数</label><div class="row2"><input id="siteTunnelKey" placeholder="在线隧道 item key" /><input id="siteTunnelExpected" type="number" min="1" value="4" /></div></div>
+      <div class="fld"><label>SD-WAN 当前路径 item key（可留空）</label><input id="sitePathKey" placeholder="返回主线路名称、编号或颜色" /></div>
+      <div class="fld"><label>质量 item key</label><div class="row2"><input id="siteLatencyKey" placeholder="时延 ms" /><input id="siteJitterKey" placeholder="抖动 ms" /><input id="siteLossKey" placeholder="丢包 %" /></div></div>
+      <div class="fld"><label><input id="siteEnabled" type="checkbox" checked style="width:auto;margin-right:6px" />在网络运行页展示</label></div>
+      <div class="row2 fld"><div class="btn" id="siteNew">+ 新建站点</div><div class="btn" id="siteSave">保存站点</div><div class="btn" id="siteDelete">删除</div></div>
+      <div class="hint" id="siteMsg">已经预置 5 个可编辑占位站点。请按实际站点名称、线路和 Zabbix item key 修改。</div>
     </div>
 
     <div class="tp" id="tpZbx">
@@ -1452,16 +1475,25 @@ const DeviceCatalog = {
     const byName={};hosts.forEach(function(h){byName[String(h.host||'').toLowerCase()]=h;byName[String(h.name||'').toLowerCase()]=h;});
     const hostids=Array.from(new Set(defs.map(function(d){const h=byName[String(d.zbxHost||'').toLowerCase()];return h&&h.hostid;}).filter(Boolean)));
     let items=[];
-    if(hostids.length)items=await adapter.opt(adapter.call('item.get',{output:['hostid','name','key_','lastvalue','units'],hostids:hostids,filter:{status:0},limit:5000}))||[];
+    if(hostids.length)items=await adapter.opt(adapter.call('item.get',{output:['itemid','hostid','name','key_','lastvalue','units','value_type'],hostids:hostids,filter:{status:0},limit:5000}))||[];
     const rows=defs.map(function(d){
       const h=byName[String(d.zbxHost||'').toLowerCase()]||null;
       const own=h?items.filter(function(i){return String(i.hostid)===String(h.hostid);}):[];
-      const ses=DeviceCatalog.findItem(own,d.sessionKey),inn=DeviceCatalog.findItem(own,d.inKey),out=DeviceCatalog.findItem(own,d.outKey);
+      const ses=DeviceCatalog.findItem(own,d.sessionKey),inn=DeviceCatalog.findItem(own,d.inKey),out=DeviceCatalog.findItem(own,d.outKey),aud=DeviceCatalog.findItem(own,d.auditKey);
       return {id:d.id,name:d.name,type:d.type,vendor:d.vendor,model:d.model,site:d.site,zbxHost:d.zbxHost,hostid:h&&h.hostid,
         session:ses?Number(ses.lastvalue):null,inValue:inn?Number(inn.lastvalue):null,outValue:out?Number(out.lastvalue):null,
-        sessionItem:ses&&ses.key_,inItem:inn&&inn.key_,outItem:out&&out.key_};
+        sessionItem:ses&&ses.key_,inItem:inn&&inn.key_,outItem:out&&out.key_,auditItem:aud};
     });
-    this.lastMetrics={rows:rows,matched:rows.filter(function(x){return x.hostid;}).length};return this.lastMetrics;
+    const auditById={};rows.forEach(function(r){if(r.auditItem)auditById[String(r.auditItem.itemid)]={device:r.name,item:r.auditItem};});
+    const audit=[];
+    for(const type of [2,4]){
+      const ids=Object.keys(auditById).filter(function(id){return Number(auditById[id].item.value_type)===type;});
+      if(!ids.length)continue;
+      const hist=await adapter.opt(adapter.call('history.get',{output:'extend',history:type,itemids:ids,time_from:Math.floor(Date.now()/1000)-86400,sortfield:'clock',sortorder:'DESC',limit:50}))||[];
+      hist.forEach(function(x){const m=auditById[String(x.itemid)];if(m)audit.push({device:m.device,clock:Number(x.clock)||0,message:String(x.value||'')});});
+    }
+    audit.sort(function(a,b){return b.clock-a.clock;});
+    this.lastMetrics={rows:rows,matched:rows.filter(function(x){return x.hostid;}).length,audit:audit.slice(0,30)};return this.lastMetrics;
   },
   flow(metrics){
     const defs=this.enabled(),rows=(metrics&&metrics.rows)||[],withSession=rows.filter(function(x){return isFinite(x.session);});
@@ -1478,6 +1510,49 @@ const DeviceCatalog = {
       g.total++;const st=online[String(d.zbxHost||'').toLowerCase()];if(st!==undefined){g.known++;if(st)g.online++;}
     });
     return Object.keys(groups).map(function(k){const g=groups[k],health=g.known?100*g.online/g.known:0;return {n:g.n,total:g.total,online:g.online,health:health,c:g.c,d:g.known?('Zabbix 已识别 '+g.known+' 台'):'等待匹配 Zabbix 主机'};});
+  },
+  audit(metrics){
+    const a=(metrics&&metrics.audit)||[];
+    return {source:a.length?'Zabbix · 设备审计日志':'Zabbix · 未配置审计日志',items:a.map(function(x){
+      const m=x.message,user=(m.match(/(?:user|username|admin|by)[=: ]+([\w.@-]+)/i)||[])[1]||'待解析';
+      return {clock:x.clock,device:x.device,user:user,message:m,status:'待核验'};
+    })};
+  }
+};
+
+const SiteCatalog = {
+  key:'netcockpit.sites.v1',selected:'',lastMetrics:null,
+  defaults(){return [
+    {id:'site-hq',name:'地区总部',zbxHost:'SITE-HQ',primary:'电信 Internet',backup:'联通 Internet',tunnelExpected:4,enabled:true},
+    {id:'site-b',name:'Site B',zbxHost:'SITE-B',primary:'电信 Internet',backup:'移动 Internet',tunnelExpected:4,enabled:true},
+    {id:'site-c',name:'Site C',zbxHost:'SITE-C',primary:'联通 Internet',backup:'电信 Internet',tunnelExpected:4,enabled:true},
+    {id:'site-d',name:'Site D',zbxHost:'SITE-D',primary:'电信 Internet',backup:'5G',tunnelExpected:4,enabled:true},
+    {id:'site-e',name:'Site E',zbxHost:'SITE-E',primary:'移动 Internet',backup:'联通 Internet',tunnelExpected:4,enabled:true}
+  ];},
+  sites(){try{const raw=localStorage.getItem(this.key),a=raw?JSON.parse(raw):this.defaults();return Array.isArray(a)?a:this.defaults();}catch(e){return this.defaults();}},
+  save(a){localStorage.setItem(this.key,JSON.stringify(a));},enabled(){return this.sites().filter(function(x){return x.enabled!==false;});},
+  async pull(adapter){
+    const defs=this.enabled();if(!defs.length)return {rows:[],matched:0};
+    const hosts=await adapter.opt(adapter.call('host.get',{output:['hostid','host','name'],filter:{status:0},limit:10000}))||[],byName={};
+    hosts.forEach(function(h){byName[String(h.host||'').toLowerCase()]=h;byName[String(h.name||'').toLowerCase()]=h;});
+    const hostids=Array.from(new Set(defs.map(function(d){const h=byName[String(d.zbxHost||'').toLowerCase()];return h&&h.hostid;}).filter(Boolean)));
+    const items=hostids.length?(await adapter.opt(adapter.call('item.get',{output:['hostid','key_','lastvalue','units'],hostids:hostids,filter:{status:0},limit:5000}))||[]):[];
+    const rows=defs.map(function(d){const h=byName[String(d.zbxHost||'').toLowerCase()],own=h?items.filter(function(i){return String(i.hostid)===String(h.hostid);}):[];
+      const val=function(k){const i=DeviceCatalog.findItem(own,k);return i?i.lastvalue:null;};
+      return Object.assign({},d,{hostid:h&&h.hostid,tunnels:val(d.tunnelKey),path:val(d.pathKey),latency:val(d.latencyKey),jitter:val(d.jitterKey),loss:val(d.lossKey)});
+    });
+    this.lastMetrics={rows:rows,matched:rows.filter(function(x){return x.hostid;}).length};return this.lastMetrics;
+  },
+  view(metrics,live){
+    const rows=(metrics&&metrics.rows)||this.enabled();
+    return rows.map(function(x,i){
+      if(!live)return {n:x.name,d:'主 '+x.primary+' · 备 '+x.backup+' · IPsec '+(x.tunnelExpected||4)+'/'+(x.tunnelExpected||4)+' · RTT '+(12+i*7)+'ms · 抖动 '+(2+i)+'ms · 丢包 0.'+(i+1)+'%',v:i===3?'备线路':'主线路',c:i===3?'#f59e0b':'#22c55e'};
+      const has=x.hostid&&[x.tunnels,x.latency,x.jitter,x.loss,x.path].some(function(v){return v!==null&&v!=='';});
+      if(!has)return {n:x.name,d:'Zabbix 已登记但未映射隧道质量 item',v:'待映射',c:'#f59e0b'};
+      const tun=x.tunnels===null?'--':Number(x.tunnels),exp=Number(x.tunnelExpected)||4,lat=x.latency===null?'--':Number(x.latency).toFixed(1),jit=x.jitter===null?'--':Number(x.jitter).toFixed(1),loss=x.loss===null?'--':Number(x.loss).toFixed(2);
+      const bad=(tun!=='--'&&tun<exp)||(loss!=='--'&&Number(loss)>=2)||(lat!=='--'&&Number(lat)>=150),warn=!bad&&((loss!=='--'&&Number(loss)>=1)||(lat!=='--'&&Number(lat)>=100));
+      return {n:x.name,d:'主 '+x.primary+' · 备 '+x.backup+' · IPsec '+tun+'/'+exp+' · RTT '+lat+'ms · 抖动 '+jit+'ms · 丢包 '+loss+'%',v:x.path|| (bad?'异常':warn?'降级':'主线路'),c:bad?'#f43f5e':warn?'#f59e0b':'#22c55e'};
+    });
   }
 };
 
@@ -1617,6 +1692,11 @@ const ZabbixAdapter = {
       this.error = '';
     }
     if (snap) Object.assign(d, snap);  // 真实值覆盖，未覆盖字段沿用基线
+    else if(this.live){
+      d.wan=SiteCatalog.view({rows:SiteCatalog.enabled()},true);
+      d.changeAudit={source:'Zabbix 连接失败 · 无审计数据',items:[]};
+      d.flow={_real:true,aggregateOnly:true,source:'Zabbix 连接失败',totalSessions:0,totalBytes:0,devices:DeviceCatalog.enabled().length,items:[],note:'实时数据源不可用，未使用演示会话替代。'};
+    }
     this.lastSync = this.lastSync || Date.now();
     return d;
   },
@@ -1624,8 +1704,8 @@ const ZabbixAdapter = {
   /* --- 真实数据拉取；任一分项失败只降级该项。d = 演示基线快照 --- */
   async pull(d){
     this.errors = [];
-    const [hosts, av, trg, ifs, met, devm] = await Promise.all([
-      this.pullHosts(), this.pullAvail(), this.pullTriggers(), this.pullItems(), this.pullMetrics(), DeviceCatalog.pull(this)
+    const [hosts, av, trg, ifs, met, devm, sitem] = await Promise.all([
+      this.pullHosts(), this.pullAvail(), this.pullTriggers(), this.pullItems(), this.pullMetrics(), DeviceCatalog.pull(this), SiteCatalog.pull(this)
     ]);
     const snap = {};
     /* 五项全失败 → 视为整体失败，整份回退演示基线，避免半真半假的数据混进大屏 */
@@ -1738,9 +1818,12 @@ const ZabbixAdapter = {
     if(DeviceCatalog.enabled().length){
       snap.assetHealth=DeviceCatalog.healthRows(av);
       snap.flow=DeviceCatalog.flow(devm);
+      snap.changeAudit=DeviceCatalog.audit(devm);
     }else{
       snap.flow={_real:true,aggregateOnly:true,source:'Zabbix · 未建设备台账',totalSessions:0,totalBytes:0,devices:0,items:[],note:'请在设备台账登记要展示的设备。'};
+      snap.changeAudit={source:'Zabbix · 未建设备台账',items:[]};
     }
+    snap.wan=SiteCatalog.view(sitem,true);
     return snap;
   },
 
@@ -2881,7 +2964,7 @@ const Mock = {
   rnd:(a,b,d=1)=> +(a + Math.random()*(b-a)).toFixed(d),
   walk:(v,amp,min,max)=> Math.min(max, Math.max(min, v + (Math.random()-0.45)*amp)),
   build(){
-    const T = ++this.t, d = {kpi:[],band:{},secScore:{},secTrend:{},secTop:[],secRisk:[],flow:null,assetTraffic:null,
+    const T = ++this.t, d = {kpi:[],band:{},secScore:{},secTrend:{},secTop:[],secRisk:[],changeAudit:null,flow:null,assetTraffic:null,
       link:[],sla:[],cap:[],zone:[],ticket:[],topo:{},alerts:[],assetHealth:[],infraRisk:[],wan:[],resilience:[],lifecycle:[],forecast:[],investment:[]};
 
     /* --- 全局 KPI（规模按实况：网络 318 · 服务器 30 · 存储 20）--- */
@@ -3080,13 +3163,12 @@ const Mock = {
       {n:'AP-HQ-3F-12 重启次数偏高',d:'近 24 小时 6 次 · 待更换',v:'P3',c:C.blue},
       {n:'VM-HOST-07 内存超分配 1.6x',d:'集群仍有 31% 可用余量',v:'观察',c:C.cyan}
     ];
-    d.wan = [
-      {n:'中国电信 · Internet-A',d:'北京 POP · RTT '+this.rnd(8,14,1)+'ms · 丢包 '+this.rnd(.02,.18,2)+'%',v:'正常',c:C.green},
-      {n:'中国联通 · Internet-B',d:'上海 POP · RTT '+this.rnd(11,18,1)+'ms · 丢包 '+this.rnd(.05,.3,2)+'%',v:'正常',c:C.green},
-      {n:'MPLS · 亚太区域',d:'12 站点 · RTT '+this.rnd(42,58,1)+'ms · 抖动 '+this.rnd(3,8,1)+'ms',v:'轻微波动',c:C.amber},
-      {n:'SD-WAN · 欧洲区域',d:'8 站点 · RTT '+this.rnd(126,148,1)+'ms · 丢包 '+this.rnd(.3,1.2,2)+'%',v:'降级',c:C.amber},
-      {n:'Cloud Connect · IDC-1',d:'双链路 · '+this.rnd(8.4,9.7,1)+' Gbps · 可用率 99.99%',v:'正常',c:C.cyan}
-    ];
+    d.wan = SiteCatalog.view(null,false);
+    d.changeAudit = {source:'演示基线',items:[
+      {clock:Math.floor(Date.now()/1000)-780,device:'HQ-FTD-01',user:'netops.zhang',message:'修改对象：访问策略 OUTSIDE-IN · 变更单 CHG-2026-1108',status:'已关联工单'},
+      {clock:Math.floor(Date.now()/1000)-2460,device:'FGT-SITE-C',user:'admin.li',message:'修改对象：SD-WAN member 2 · 未发现工单号',status:'待核验'},
+      {clock:Math.floor(Date.now()/1000)-5220,device:'F5-LTM-01',user:'svc_deploy',message:'修改对象：virtual server /Common/erp-vs',status:'自动部署'}
+    ]};
 
     /* --- 内部规划专题：不参加访客巡屏 --- */
     d.resilience = [
@@ -3529,9 +3611,13 @@ function renderInfraRisk(a){
   $('infraRisk').innerHTML=(a||[]).map(function(x){return '<div class="infra-risk-row"><div><b>'+esc(x.n)+'</b><span>'+esc(x.d)+'</span></div><em style="color:'+x.c+'">'+esc(x.v)+'</em></div>';}).join('');
 }
 function renderWan(a){
-  const ok=(a||[]).filter(x=>x.v==='正常').length,health=a&&a.length?ok/a.length*100:0;$('wanHealth').textContent=health.toFixed(0)+'% 正常';
+  const ok=(a||[]).filter(function(x){return x.v!=='异常'&&x.v!=='待映射';}).length,health=a&&a.length?ok/a.length*100:0;$('wanHealth').textContent=ok+'/'+((a||[]).length)+' 站点可用';
   $('wanHealth').style.color=health<70?C.red:health<90?C.amber:C.green;
   $('wan').innerHTML=(a||[]).map(function(x){return '<div class="wan-row"><div><b>'+esc(x.n)+'</b><span>'+esc(x.d)+'</span></div><em style="color:'+x.c+'">'+esc(x.v)+'</em></div>';}).join('');
+}
+function renderChangeAudit(a){
+  a=a||{source:'无数据',items:[]};$('auditSource').textContent=a.source||'未知来源';
+  $('changeAudit').innerHTML=(a.items||[]).map(function(x){const color=x.status==='待核验'?C.amber:C.green;return '<div class="audit-row"><time>'+esc(fmtTime((Number(x.clock)||0)*1000))+'</time><div><b>'+esc(x.device)+' · '+esc(x.user||'待解析')+'</b><span>'+esc(x.message)+'</span></div><em style="color:'+color+'">'+esc(x.status||'待核验')+'</em></div>';}).join('')||'<div class="device-empty">最近 24 小时没有可识别的配置审计记录<br>请在设备台账映射 Zabbix 日志 item key</div>';
 }
 function renderResilience(a){
   $('resilience').innerHTML=(a||[]).map(function(x){return '<div class="resilience-card"><span>'+esc(x.n)+'</span><b style="color:'+x.c+'">'+esc(x.v)+'</b><small>'+esc(x.d)+'</small></div>';}).join('');
@@ -3649,7 +3735,7 @@ async function tick(force){
     }
     if(d.flow&&GeoIPAdapter.cfg.on)await GeoIPAdapter.enrich(d.flow);
     renderKPI(d); renderSecScore(d.secScore); renderSecTrend(d.secTrend);
-    renderSecTop(d.secTop); renderList('secRisk', d.secRisk);
+    renderSecTop(d.secTop); renderList('secRisk', d.secRisk); renderChangeAudit(d.changeAudit);
     renderBand(d.band); renderTopo(d.topo); renderLink(d.link); renderFlow(d.flow); AssetTraffic.render(d.assetTraffic,d.flow);
     renderSla(d.sla); renderCap(d.cap); renderList('ticket', d.ticket);
     renderAssetHealth(d.assetHealth);renderInfraRisk(d.infraRisk);renderWan(d.wan);
@@ -4644,12 +4730,12 @@ chList();
 function devReadForm(){
   return {id:DeviceCatalog.selected||('dev-'+Date.now()),name:($('devName').value||'').trim(),zbxHost:($('devZbxHost').value||'').trim(),
     type:$('devType').value,vendor:$('devVendor').value,model:($('devModel').value||'').trim(),site:($('devSite').value||'').trim(),
-    sessionKey:($('devSessionKey').value||'').trim(),inKey:($('devInKey').value||'').trim(),outKey:($('devOutKey').value||'').trim(),enabled:$('devEnabled').checked};
+    sessionKey:($('devSessionKey').value||'').trim(),inKey:($('devInKey').value||'').trim(),outKey:($('devOutKey').value||'').trim(),auditKey:($('devAuditKey').value||'').trim(),enabled:$('devEnabled').checked};
 }
 function devFill(d){
   d=d||{};DeviceCatalog.selected=d.id||'';$('devName').value=d.name||'';$('devZbxHost').value=d.zbxHost||'';
   $('devType').value=d.type||'firewall';$('devVendor').value=d.vendor||'Cisco';$('devModel').value=d.model||'';$('devSite').value=d.site||'';
-  $('devSessionKey').value=d.sessionKey||'';$('devInKey').value=d.inKey||'';$('devOutKey').value=d.outKey||'';$('devEnabled').checked=d.enabled!==false;
+  $('devSessionKey').value=d.sessionKey||'';$('devInKey').value=d.inKey||'';$('devOutKey').value=d.outKey||'';$('devAuditKey').value=d.auditKey||'';$('devEnabled').checked=d.enabled!==false;
   devRender();
 }
 function devRender(){
@@ -4675,6 +4761,22 @@ $('devImport').onclick=function(){$('devImportFile').click();};
 $('devImportFile').onchange=function(){const f=this.files&&this.files[0];if(!f)return;const rd=new FileReader();rd.onload=function(){try{const a=JSON.parse(rd.result);if(!Array.isArray(a))throw new Error('JSON 顶层必须是数组');DeviceCatalog.save(a);DeviceCatalog.selected='';devRender();$('devMsg').innerHTML='<span style="color:var(--green)">✓ 已导入 '+a.length+' 台设备</span>';tick(true);}catch(e){$('devMsg').innerHTML='<span style="color:var(--red)">导入失败：'+esc(e.message)+'</span>';}};rd.readAsText(f,'utf-8');this.value='';};
 devRender();
 
+/* 5 站点 SD-WAN / IPsec 台账。 */
+function siteReadForm(){return {id:SiteCatalog.selected||('site-'+Date.now()),name:($('siteName').value||'').trim(),zbxHost:($('siteZbxHost').value||'').trim(),primary:($('sitePrimary').value||'').trim(),backup:($('siteBackup').value||'').trim(),tunnelKey:($('siteTunnelKey').value||'').trim(),tunnelExpected:Number($('siteTunnelExpected').value)||4,pathKey:($('sitePathKey').value||'').trim(),latencyKey:($('siteLatencyKey').value||'').trim(),jitterKey:($('siteJitterKey').value||'').trim(),lossKey:($('siteLossKey').value||'').trim(),enabled:$('siteEnabled').checked};}
+function siteFill(d){d=d||{};SiteCatalog.selected=d.id||'';$('siteName').value=d.name||'';$('siteZbxHost').value=d.zbxHost||'';$('sitePrimary').value=d.primary||'';$('siteBackup').value=d.backup||'';$('siteTunnelKey').value=d.tunnelKey||'';$('siteTunnelExpected').value=d.tunnelExpected||4;$('sitePathKey').value=d.pathKey||'';$('siteLatencyKey').value=d.latencyKey||'';$('siteJitterKey').value=d.jitterKey||'';$('siteLossKey').value=d.lossKey||'';$('siteEnabled').checked=d.enabled!==false;siteRender();}
+function siteRender(){const a=SiteCatalog.sites();$('siteList').innerHTML=a.map(function(d){return '<div class="device-card'+(d.id===SiteCatalog.selected?' on':'')+'" data-id="'+esc(d.id)+'"><b>'+esc(d.name||'未命名站点')+'</b><em>'+(d.enabled===false?'未展示':'IPsec + SD-WAN')+'</em><span>'+esc([d.primary,d.backup,d.zbxHost&&('Zabbix: '+d.zbxHost)].filter(Boolean).join(' · '))+'</span></div>';}).join('')||'<div class="device-empty">尚未配置站点</div>';}
+$('siteList').onclick=function(e){const card=e.target.closest('.device-card');if(!card)return;const d=SiteCatalog.sites().find(function(x){return x.id===card.dataset.id;});if(d)siteFill(d);};
+$('siteNew').onclick=function(){siteFill(null);$('siteMsg').textContent='正在新建站点，填完后点“保存站点”。';};
+$('siteSave').onclick=function(){const d=siteReadForm();if(!d.name||!d.zbxHost){$('siteMsg').innerHTML='<span style="color:var(--red)">站点名称和 Zabbix 主机名必须填写</span>';return;}const a=SiteCatalog.sites(),i=a.findIndex(function(x){return x.id===d.id;});if(i>-1)a[i]=d;else a.push(d);SiteCatalog.save(a);SiteCatalog.selected=d.id;siteRender();$('siteMsg').innerHTML='<span style="color:var(--green)">✓ 已保存</span> · 网络运行页将在下一次刷新更新。';tick(true);};
+$('siteDelete').onclick=function(){if(!SiteCatalog.selected){$('siteMsg').textContent='请先选择站点。';return;}SiteCatalog.save(SiteCatalog.sites().filter(function(x){return x.id!==SiteCatalog.selected;}));siteFill(null);$('siteMsg').textContent='站点已移除。';tick(true);};
+siteRender();
+
+let secRiskMode=localStorage.getItem('netcockpit.sec.riskview')||'risk';
+function applySecRiskMode(){const audit=secRiskMode==='audit';$('riskView').hidden=audit;$('auditView').hidden=!audit;$('riskViewBtn').classList.toggle('on',!audit);$('auditViewBtn').classList.toggle('on',audit);}
+$('riskViewBtn').onclick=function(){secRiskMode='risk';localStorage.setItem('netcockpit.sec.riskview',secRiskMode);applySecRiskMode();};
+$('auditViewBtn').onclick=function(){secRiskMode='audit';localStorage.setItem('netcockpit.sec.riskview',secRiskMode);applySecRiskMode();};
+applySecRiskMode();
+
 /* 默认隐藏暂时用不到的 FAZ / 会话 REST / GeoIP / 自动分流，保留为未来扩展。 */
 let advancedShown=localStorage.getItem('netcockpit.advanced')==='1';
 function advancedSync(){document.querySelectorAll('.advanced-source').forEach(function(x){x.classList.toggle('advanced-off',!advancedShown);});$('advancedToggle').textContent=advancedShown?'收起高级数据源':'显示高级数据源';}
@@ -4698,7 +4800,7 @@ document.querySelectorAll('#drawer .tabs .t').forEach(function(el){
  *     window.Netcockpit.setPoints(...) 注入点位；其它方法见下方注释
  * ======================================================================== */
 window.Netcockpit = {
-  version : '2.1.0',
+  version : '2.2.0',
   map     : MapLayer,
   asset   : ASSET,
   sessions: SessionAdapter,
