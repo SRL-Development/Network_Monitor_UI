@@ -167,12 +167,16 @@ body[data-view="paged"] #colL,
 body[data-view="paged"] #mid,
 body[data-view="paged"] #colR{display:contents}
 body[data-view="paged"][data-page="exec"] #body,
+body[data-view="paged"][data-page="infra"] #body,
 body[data-view="paged"][data-page="net"] #body{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
-body[data-view="paged"][data-page="sec"] #body{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
+body[data-view="paged"][data-page="sec"] #body,
+body[data-view="paged"][data-page="plan"] #body{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
 body[data-view="paged"][data-page="exec"] .panel:not([data-page~="exec"]),
+body[data-view="paged"][data-page="infra"] .panel:not([data-page~="infra"]),
 body[data-view="paged"][data-page="sec"] .panel:not([data-page~="sec"]),
 body[data-view="paged"][data-page="net"] .panel:not([data-page~="net"]),
-body[data-view="paged"][data-page="cap"] .panel:not([data-page~="cap"]){display:none !important}
+body[data-view="paged"][data-page="plan"] .panel:not([data-page~="plan"]){display:none !important}
+body[data-view="single"] .panel[data-page~="plan"]{display:none !important}
 
 /* 面板 */
 .panel{
@@ -411,6 +415,22 @@ body.paused .flow{animation-play-state:paused}
 .asset-top-row .asset-bar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--cyan),var(--blue));box-shadow:0 0 8px rgba(34,211,238,.45)}
 .asset-top-row .asset-val{text-align:right;color:var(--txt);white-space:nowrap}
 
+/* 基础设施、运营商和内部规划专题 */
+.asset-health-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;height:100%}
+.asset-health-card{padding:10px;border:1px solid var(--line);border-radius:8px;background:linear-gradient(135deg,rgba(16,42,72,.78),rgba(5,17,34,.6));position:relative;overflow:hidden}
+.asset-health-card .ah{display:flex;justify-content:space-between;align-items:start;gap:8px}.asset-health-card .ah b{font-size:13px}.asset-health-card .ah span{font-size:10px;color:var(--txt-3)}
+.asset-health-card .av{font-size:24px;font-weight:800;color:var(--cyan);margin:5px 0 6px}.asset-health-card .av small{font-size:10px;color:var(--txt-3);font-weight:400;margin-left:4px}
+.asset-health-card .ad{display:flex;justify-content:space-between;color:var(--txt-3);font-size:9.5px;margin-top:5px}
+.infra-risk-list,.wan-list,.life-list,.invest-list{display:flex;flex-direction:column;gap:7px}
+.infra-risk-row,.wan-row,.life-row,.invest-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:rgba(13,31,55,.62)}
+.infra-risk-row b,.wan-row b,.life-row b,.invest-row b{display:block;color:var(--txt);font-size:11px}.infra-risk-row span,.wan-row span,.life-row span,.invest-row span{display:block;color:var(--txt-3);font-size:9.5px;margin-top:3px}
+.infra-risk-row em,.wan-row em,.life-row em,.invest-row em{font-style:normal;font-size:10px;font-weight:700;white-space:nowrap}
+.resilience-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;height:100%}
+.resilience-card{border:1px solid var(--line);border-radius:9px;padding:12px;background:rgba(10,28,51,.68)}
+.resilience-card span{font-size:10px;color:var(--txt-3)}.resilience-card b{display:block;font-size:25px;color:var(--cyan);margin:5px 0}.resilience-card small{color:var(--txt-2);font-size:9.5px}
+.forecast-row{display:grid;grid-template-columns:125px 1fr 72px;align-items:center;gap:10px;margin-bottom:12px;font-size:11px}.forecast-row .tr{height:8px}.forecast-row b{text-align:right;color:var(--txt);font-size:10.5px}
+.internal-badge{color:var(--amber)!important;border-color:rgba(245,158,11,.35)!important;background:rgba(245,158,11,.08)!important}
+
 /* ============================================================
    抽屉：页签
    ============================================================ */
@@ -540,11 +560,13 @@ body.editing .edit-tip{display:block}
   <!-- 分屏预览页签：仅分屏模式可见 -->
   <div id="pagebar">
     <div class="ptab on" data-page="exec">区域总览</div>
+    <div class="ptab" data-page="infra">基础设施</div>
     <div class="ptab" data-page="net">网络运行</div>
     <div class="ptab" data-page="sec">网络安全</div>
+    <div class="ptab internal-badge" data-page="plan" title="内部管理页面，不参与自动巡屏">🔒 内部规划</div>
     <div class="ptab" id="btnTour">▶ 自动巡屏</div>
     <div class="ptab" id="btnDual">双屏展示</div>
-    <div class="pbar-hint">自动巡屏每 18 秒轮播专题；双屏将当前窗口设为网络运行，并打开安全副屏</div>
+    <div class="pbar-hint">自动巡屏：总览 → 基础设施 → 网络 → 安全；内部规划不参与轮播</div>
   </div>
 
   <div id="execSummary" aria-label="领导决策摘要">
@@ -561,6 +583,18 @@ body.editing .edit-tip{display:block}
   <div id="body">
     <!-- 左：安全态势 -->
     <div class="col" id="colL">
+      <div class="panel" data-mod="assetHealth" data-page="infra" style="flex:1">
+        <div class="p-h"><i class="bar"></i><span class="t">基础设施资产健康</span><span class="en">Infrastructure Health</span>
+          <div class="r"><span id="assetHealthTotal">-- 台</span><i class="grip"></i></div></div>
+        <div class="p-b"><div class="asset-health-grid" id="assetHealth"></div></div>
+      </div>
+
+      <div class="panel" data-mod="infraRisk" data-page="infra" style="flex:1">
+        <div class="p-h"><i class="bar"></i><span class="t">基础设施异常与维护</span><span class="en">Operations &amp; Maintenance</span>
+          <div class="r"><span id="infraRiskCount">-- 项</span><i class="grip"></i></div></div>
+        <div class="p-b"><div class="infra-risk-list" id="infraRisk"></div></div>
+      </div>
+
       <div class="panel" data-mod="secScore" data-page="sec" style="flex:1.05">
         <div class="p-h"><i class="bar"></i><span class="t">安全态势综合评分</span><span class="en">Security Score</span>
           <div class="r"><i class="grip"></i></div></div>
@@ -594,7 +628,7 @@ body.editing .edit-tip{display:block}
         <div class="p-b"><div class="big-nums" id="band"></div></div>
       </div>
 
-      <div class="panel" data-mod="topo" data-page="net" style="flex:1 1 0;min-height:0">
+      <div class="panel" data-mod="topo" data-page="infra net" style="flex:1 1 0;min-height:0">
         <div class="p-h"><i class="bar"></i><span class="t">网络架构全景</span><span class="en">Core / Agg / Access</span>
           <div class="r"><span>链路健康 <b id="linkHealth" style="color:var(--green)">--</b></span>
             <span class="num" id="topoDev">-- 台设备</span><i class="grip"></i></div></div>
@@ -602,7 +636,7 @@ body.editing .edit-tip{display:block}
       </div>
 
       <!-- 地理分布：Google Maps 按需加载，始终保留离线回退 -->
-      <div class="panel" data-mod="map" data-page="exec net" style="flex:0 0 252px">
+      <div class="panel" data-mod="map" data-page="exec infra net" style="flex:0 0 252px">
         <div class="p-h"><i class="bar"></i><span class="t">区域总部 · 数据中心与分支分布</span><span class="en">Regional Sites</span>
           <div class="r"><span class="num" id="mapSiteCnt">--</span>
             <span class="chipbtn" id="mapEng">引擎</span><i class="grip"></i></div></div>
@@ -652,13 +686,13 @@ body.editing .edit-tip{display:block}
         <div class="p-b"><div class="list" id="sla"></div></div>
       </div>
 
-      <div class="panel" data-mod="cap" data-page="cap" style="flex:0 0 292px">
+      <div class="panel" data-mod="cap" data-page="infra" style="flex:0 0 292px">
         <div class="p-h"><i class="bar"></i><span class="t">资源容量水位</span><span class="en">Capacity</span>
           <div class="r"><i class="grip"></i></div></div>
         <div class="p-b"><div id="cap"></div></div>
       </div>
 
-      <div class="panel" data-mod="assetTraffic" data-page="net" style="flex:1">
+      <div class="panel" data-mod="assetTraffic" data-page="infra" style="flex:1">
         <div class="p-h"><i class="bar"></i><span class="t">资产分类流量 TOP</span><span class="en">Traffic by Asset Group</span>
           <div class="r"><span id="assetTopSource">演示基线</span><i class="grip"></i></div></div>
         <div class="p-b">
@@ -677,6 +711,36 @@ body.editing .edit-tip{display:block}
         <div class="p-h"><i class="bar"></i><span class="t">工单与变更</span><span class="en">Tickets &amp; Changes</span>
           <div class="r"><i class="grip"></i></div></div>
         <div class="p-b"><div class="list" id="ticket"></div></div>
+      </div>
+
+      <div class="panel" data-mod="wan" data-page="net" style="flex:1">
+        <div class="p-h"><i class="bar"></i><span class="t">运营商与广域网质量</span><span class="en">Carrier &amp; WAN</span>
+          <div class="r"><span id="wanHealth">--%</span><i class="grip"></i></div></div>
+        <div class="p-b"><div class="wan-list" id="wan"></div></div>
+      </div>
+
+      <div class="panel" data-mod="resilience" data-page="plan" style="flex:1">
+        <div class="p-h"><i class="bar"></i><span class="t">业务韧性与灾备</span><span class="en">Resilience · Internal</span>
+          <div class="r"><span class="internal-badge" style="padding:2px 7px;border:1px solid;border-radius:10px">内部</span><i class="grip"></i></div></div>
+        <div class="p-b"><div class="resilience-grid" id="resilience"></div></div>
+      </div>
+
+      <div class="panel" data-mod="lifecycle" data-page="plan" style="flex:1">
+        <div class="p-h"><i class="bar"></i><span class="t">设备生命周期与技术债</span><span class="en">Lifecycle · Internal</span>
+          <div class="r"><span id="lifeCount">-- 项</span><i class="grip"></i></div></div>
+        <div class="p-b"><div class="life-list" id="lifecycle"></div></div>
+      </div>
+
+      <div class="panel" data-mod="forecast" data-page="plan" style="flex:1">
+        <div class="p-h"><i class="bar"></i><span class="t">容量趋势与耗尽预测</span><span class="en">Capacity Forecast · Internal</span>
+          <div class="r"><i class="grip"></i></div></div>
+        <div class="p-b" id="forecast"></div>
+      </div>
+
+      <div class="panel" data-mod="investment" data-page="plan" style="flex:1">
+        <div class="p-h"><i class="bar"></i><span class="t">规划事项优先级</span><span class="en">Planning Priorities · Internal</span>
+          <div class="r"><span id="investmentCount">-- 项</span><i class="grip"></i></div></div>
+        <div class="p-b"><div class="invest-list" id="investment"></div></div>
       </div>
     </div>
   </div>
@@ -2707,10 +2771,10 @@ const Mock = {
   walk:(v,amp,min,max)=> Math.min(max, Math.max(min, v + (Math.random()-0.45)*amp)),
   build(){
     const T = ++this.t, d = {kpi:[],band:{},secScore:{},secTrend:{},secTop:[],secRisk:[],flow:null,assetTraffic:null,
-      link:[],sla:[],cap:[],zone:[],ticket:[],topo:{},alerts:[]};
+      link:[],sla:[],cap:[],zone:[],ticket:[],topo:{},alerts:[],assetHealth:[],infraRisk:[],wan:[],resilience:[],lifecycle:[],forecast:[],investment:[]};
 
     /* --- 全局 KPI（规模按实况：网络 318 · 服务器 30 · 存储 20）--- */
-    const totalDev = ASSET.net, online = totalDev - Math.round(this.rnd(2,6,0));
+    const totalDev = ASSET.net + ASSET.srv + ASSET.sto, online = totalDev - Math.round(this.rnd(2,6,0));
     const alarms = 34 + Math.round(Math.sin(T/7)*8);
     const attacks = 1240 + Math.round(Math.sin(T/5)*180);
     const blocked = this.rnd(86,94,2);
@@ -2847,7 +2911,7 @@ const Mock = {
 
     /* --- 拓扑 --- */
     d.topo = {
-      health:this.rnd(97.4,99.3,1), devices:totalDev,
+      health:this.rnd(97.4,99.3,1), devices:ASSET.net,
       nodes:[
         {id:'fw1', x:250, y:22,  w:150,h:38, t:'FW-01',    s:'Firepower 2100', k:'fw'},
         {id:'fw2', x:560, y:22,  w:150,h:38, t:'FW-02',    s:'Palo Alto 820',  k:'fw'},
@@ -2889,6 +2953,57 @@ const Mock = {
       {n:'机房温度',       v:this.rnd(21,27,1),  u:'°C', c:C.amber},
       {n:'出口带宽',       v:this.rnd(56,74,0),  u:'%',  c:C.pink},
       {n:'IP 地址池',      v:this.rnd(63,81,0),  u:'%',  c:C.lime}
+    ];
+
+    /* --- 基础设施专题：资产健康与维护风险 --- */
+    d.assetHealth = [
+      {n:'服务器',total:ASSET.srv,online:ASSET.srv-1,health:this.rnd(96.8,99.4,1),c:C.blue,d:'物理 / 虚拟化主机'},
+      {n:'存储',total:ASSET.sto,online:ASSET.sto,health:this.rnd(97.5,99.8,1),c:C.purple,d:'SAN / NAS / 对象存储'},
+      {n:'交换机',total:ASSET.net-192,online:ASSET.net-195,health:this.rnd(97.0,99.2,1),c:C.cyan,d:'核心 / 汇聚 / 接入'},
+      {n:'无线 AP',total:192,online:188,health:this.rnd(95.8,98.8,1),c:C.green,d:'总部 / 园区 / 分支'}
+    ];
+    d.infraRisk = [
+      {n:'PowerEdge R740 电源冗余降级',d:'SRV-ERP-04 · 生产区 · 已派单',v:'P1',c:C.red},
+      {n:'Unity-02 存储池容量达到 82%',d:'预计 4.2 个月达到扩容阈值',v:'P2',c:C.amber},
+      {n:'C9300-SW-07 风扇转速异常',d:'总部 5F · 备件已到库',v:'P2',c:C.amber},
+      {n:'AP-HQ-3F-12 重启次数偏高',d:'近 24 小时 6 次 · 待更换',v:'P3',c:C.blue},
+      {n:'VM-HOST-07 内存超分配 1.6x',d:'集群仍有 31% 可用余量',v:'观察',c:C.cyan}
+    ];
+    d.wan = [
+      {n:'中国电信 · Internet-A',d:'北京 POP · RTT '+this.rnd(8,14,1)+'ms · 丢包 '+this.rnd(.02,.18,2)+'%',v:'正常',c:C.green},
+      {n:'中国联通 · Internet-B',d:'上海 POP · RTT '+this.rnd(11,18,1)+'ms · 丢包 '+this.rnd(.05,.3,2)+'%',v:'正常',c:C.green},
+      {n:'MPLS · 亚太区域',d:'12 站点 · RTT '+this.rnd(42,58,1)+'ms · 抖动 '+this.rnd(3,8,1)+'ms',v:'轻微波动',c:C.amber},
+      {n:'SD-WAN · 欧洲区域',d:'8 站点 · RTT '+this.rnd(126,148,1)+'ms · 丢包 '+this.rnd(.3,1.2,2)+'%',v:'降级',c:C.amber},
+      {n:'Cloud Connect · IDC-1',d:'双链路 · '+this.rnd(8.4,9.7,1)+' Gbps · 可用率 99.99%',v:'正常',c:C.cyan}
+    ];
+
+    /* --- 内部规划专题：不参加访客巡屏 --- */
+    d.resilience = [
+      {n:'备份成功率',v:this.rnd(98.4,99.8,1)+'%',d:'过去 24 小时 · 关键系统 100%',c:C.green},
+      {n:'复制健康度',v:this.rnd(96.8,99.4,1)+'%',d:'IDC-1 → DR-1 · 延迟 42 秒',c:C.cyan},
+      {n:'RPO 达标',v:'18 / 20',d:'2 个非核心系统需整改',c:C.amber},
+      {n:'RTO 达标',v:'17 / 20',d:'最近演练 · 平均恢复 74 分钟',c:C.amber}
+    ];
+    d.lifecycle = [
+      {n:'核心交换机 N9K-9504 × 2',d:'厂商支持将于 2027-06 到期',v:'7 个月',c:C.red},
+      {n:'VMware vSphere 7 集群',d:'升级兼容性评估进行中',v:'本季度',c:C.amber},
+      {n:'Windows Server 2016 × 18',d:'应用迁移计划完成 61%',v:'12 个月',c:C.amber},
+      {n:'无线 AP 旧型号 × 46',d:'不支持 Wi-Fi 6 · 分两批替换',v:'FY27',c:C.blue},
+      {n:'存储维保合同 × 2',d:'报价复核与续保谈判',v:'93 天',c:C.cyan}
+    ];
+    d.forecast = [
+      {n:'生产存储池',v:82,runway:'4.2 个月'},
+      {n:'备份存储池',v:74,runway:'7.5 个月'},
+      {n:'VMware CPU',v:63,runway:'14 个月'},
+      {n:'总部出口带宽',v:68,runway:'9.0 个月'},
+      {n:'无线并发容量',v:57,runway:'18 个月'}
+    ];
+    d.investment = [
+      {n:'生产存储扩容',d:'避免 4 个月后达到 90% 红线',v:'P1 · 本季度',c:C.red},
+      {n:'核心交换机更新',d:'消除厂商支持到期与单点风险',v:'P1 · FY27',c:C.red},
+      {n:'亚太 MPLS 优化',d:'降低跨区时延与抖动',v:'P2 · 评估中',c:C.amber},
+      {n:'旧 AP 分批替换',d:'提升高密办公区无线体验',v:'P2 · 两批',c:C.blue},
+      {n:'灾备自动化编排',d:'将关键业务平均 RTO 降低 35%',v:'P2 · PoC',c:C.cyan}
     ];
 
     /* --- 工单与变更 --- */
@@ -3288,6 +3403,39 @@ function renderCap(c){
       '</div></div>';
   }).join('');
 }
+function renderAssetHealth(a){
+  const total=(a||[]).reduce((n,x)=>n+(Number(x.total)||0),0);$('assetHealthTotal').textContent=total.toLocaleString()+' 台';
+  $('assetHealth').innerHTML=(a||[]).map(function(x){
+    const health=Number(x.health)||0,col=health<95?C.red:health<98?C.amber:x.c;
+    return '<div class="asset-health-card"><div class="ah"><b>'+esc(x.n)+'</b><span>'+esc(x.d)+'</span></div>'+
+      '<div class="av" style="color:'+col+'">'+health.toFixed(1)+'%<small>健康度</small></div>'+healthBar(health,col)+
+      '<div class="ad"><span>在线 '+Number(x.online).toLocaleString()+'</span><span>总计 '+Number(x.total).toLocaleString()+'</span></div></div>';
+  }).join('');
+}
+function healthBar(v,c){return '<div class="tr" style="height:6px"><span class="fl" style="--c1:'+c+';--c2:'+c+';width:'+Math.max(0,Math.min(100,Number(v)||0))+'%"></span></div>';}
+function renderInfraRisk(a){
+  $('infraRiskCount').textContent=(a||[]).length+' 项';
+  $('infraRisk').innerHTML=(a||[]).map(function(x){return '<div class="infra-risk-row"><div><b>'+esc(x.n)+'</b><span>'+esc(x.d)+'</span></div><em style="color:'+x.c+'">'+esc(x.v)+'</em></div>';}).join('');
+}
+function renderWan(a){
+  const ok=(a||[]).filter(x=>x.v==='正常').length,health=a&&a.length?ok/a.length*100:0;$('wanHealth').textContent=health.toFixed(0)+'% 正常';
+  $('wanHealth').style.color=health<70?C.red:health<90?C.amber:C.green;
+  $('wan').innerHTML=(a||[]).map(function(x){return '<div class="wan-row"><div><b>'+esc(x.n)+'</b><span>'+esc(x.d)+'</span></div><em style="color:'+x.c+'">'+esc(x.v)+'</em></div>';}).join('');
+}
+function renderResilience(a){
+  $('resilience').innerHTML=(a||[]).map(function(x){return '<div class="resilience-card"><span>'+esc(x.n)+'</span><b style="color:'+x.c+'">'+esc(x.v)+'</b><small>'+esc(x.d)+'</small></div>';}).join('');
+}
+function renderLifecycle(a){
+  $('lifeCount').textContent=(a||[]).length+' 项';
+  $('lifecycle').innerHTML=(a||[]).map(function(x){return '<div class="life-row"><div><b>'+esc(x.n)+'</b><span>'+esc(x.d)+'</span></div><em style="color:'+x.c+'">'+esc(x.v)+'</em></div>';}).join('');
+}
+function renderForecast(a){
+  $('forecast').innerHTML=(a||[]).map(function(x){const c=x.v>=80?C.red:x.v>=68?C.amber:C.cyan;return '<div class="forecast-row"><span>'+esc(x.n)+'</span>'+healthBar(x.v,c)+'<b style="color:'+c+'">'+esc(x.runway)+'</b></div>';}).join('');
+}
+function renderInvestment(a){
+  $('investmentCount').textContent=(a||[]).length+' 项';
+  $('investment').innerHTML=(a||[]).map(function(x){return '<div class="invest-row"><div><b>'+esc(x.n)+'</b><span>'+esc(x.d)+'</span></div><em style="color:'+x.c+'">'+esc(x.v)+'</em></div>';}).join('');
+}
 function renderAlerts(a){
   const cnt = {P1:0,P2:0,P3:0,P4:0};
   a.forEach(x=>{ if(cnt[x.lv]!==undefined) cnt[x.lv]++; });
@@ -3393,6 +3541,8 @@ async function tick(force){
     renderSecTop(d.secTop); renderList('secRisk', d.secRisk);
     renderBand(d.band); renderTopo(d.topo); renderLink(d.link); renderFlow(d.flow); AssetTraffic.render(d.assetTraffic,d.flow);
     renderSla(d.sla); renderCap(d.cap); renderList('ticket', d.ticket);
+    renderAssetHealth(d.assetHealth);renderInfraRisk(d.infraRisk);renderWan(d.wan);
+    renderResilience(d.resilience);renderLifecycle(d.lifecycle);renderForecast(d.forecast);renderInvestment(d.investment);
     renderAlerts(d.alerts);
     renderExecSummary(d);
     CustomModules.renderAll(d,autoRoute||AutoSourceAdapter.last||DataRouter.latest);
@@ -3433,9 +3583,9 @@ async function tick(force){
 const VIEW_KEY = 'netcockpit.view', PAGE_KEY = 'netcockpit.page', TOUR_KEY='netcockpit.tour';
 const TOUR_SECONDS=18;
 let viewMode = localStorage.getItem(VIEW_KEY) || 'single';   // single | paged
-let viewPage = localStorage.getItem(PAGE_KEY) || 'exec';     // exec | net | sec
+let viewPage = localStorage.getItem(PAGE_KEY) || 'exec';     // exec | infra | net | sec | plan
 let tourOn=localStorage.getItem(TOUR_KEY)==='1',tourRemain=TOUR_SECONDS;
-if(viewPage==='cap')viewPage='exec';                         // 兼容旧版“业务容量”页
+if(viewPage==='cap')viewPage='infra';                        // 兼容旧版“业务容量”页
 if(!localStorage.getItem('netcockpit.leader-view.v1')){
   viewMode='paged';viewPage='exec';
   localStorage.setItem(VIEW_KEY,viewMode);localStorage.setItem(PAGE_KEY,viewPage);
@@ -3489,7 +3639,7 @@ setInterval(function(){
   if(!tourOn||document.hidden||document.body.classList.contains('editing'))return;
   tourRemain-=1;
   if(tourRemain<=0){
-    const pages=['exec','net','sec'],i=pages.indexOf(viewPage);
+    const pages=['exec','infra','net','sec'],i=pages.indexOf(viewPage);
     setPage(pages[(i+1+pages.length)%pages.length]);
   }else renderTourControl();
 },1000);
@@ -4395,7 +4545,7 @@ document.querySelectorAll('#drawer .tabs .t').forEach(function(el){
  *     window.Netcockpit.setPoints(...) 注入点位；其它方法见下方注释
  * ======================================================================== */
 window.Netcockpit = {
-  version : '1.9.0',
+  version : '2.0.0',
   map     : MapLayer,
   asset   : ASSET,
   sessions: SessionAdapter,
@@ -4459,7 +4609,7 @@ tick(true);
 /* 调试/二次开发入口：
    ?drawer=geo  → 打开「地图与数据」页签
    ?drawer=zbx  → 打开「数据接入」页签
-   ?view=paged&page=exec|net|sec → 固定打开领导总览 / 网络运行 / 网络安全专题
+   ?view=paged&page=exec|infra|net|sec|plan → 固定打开区域总览 / 基础设施 / 网络运行 / 网络安全 / 内部规划
    ?tour=1      → 启动 18 秒自动巡屏
    ?zbx=1|0     → 启动时强制 实时 / 演示模式（优先级高于本地保存值） */
 (function(){
@@ -4470,7 +4620,7 @@ tick(true);
     localStorage.setItem(ZKEY+'live', ZabbixAdapter.live ? '1' : '0');
   }
   if(v==='single'||v==='paged')viewMode=v;
-  if(['exec','net','sec'].indexOf(p)>-1)viewPage=p;
+  if(['exec','infra','net','sec','plan'].indexOf(p)>-1)viewPage=p;
   if(tour==='1'||tour==='on')setTour(true);
   else if(tour==='0'||tour==='off')setTour(false);
   applyView();
