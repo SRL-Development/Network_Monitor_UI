@@ -1,0 +1,18 @@
+services:
+  network-monitor-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/srl-development/network_monitor_ui:${IMAGE_TAG:-latest}
+    container_name: network-monitor-ui
+    restart: unless-stopped
+    ports:
+      - "${DASHBOARD_PORT:-8765}:80"
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /var/log/nginx
+    security_opt:
+      - no-new-privileges:true
+

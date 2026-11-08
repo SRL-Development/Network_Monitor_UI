@@ -1,0 +1,10 @@
+.git
+.github
+.gitignore
+README.md
+compose.yaml
+*.log
+*.tmp
+*.bak
+codex-clipboard-*
+

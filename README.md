@@ -34,6 +34,57 @@
 
 直接用浏览器打开 `network-cockpit.html` 即可。Zabbix 地址与凭据在「自定义 → Zabbix」配置，要展示的设备在「自定义 → 设备台账」维护。
 
+## Docker 部署
+
+从 GitHub 拉取源码并启动：
+
+```bash
+git clone https://github.com/SRL-Development/Network_Monitor_UI.git
+cd Network_Monitor_UI
+docker compose up -d --build
+```
+
+浏览器打开：
+
+```text
+http://服务器IP:8765/
+```
+
+常用管理命令：
+
+```bash
+docker compose ps
+docker compose logs -f
+docker compose pull
+docker compose up -d --build
+docker compose down
+```
+
+修改宿主机端口：
+
+```bash
+DASHBOARD_PORT=8080 docker compose up -d --build
+```
+
+Windows PowerShell：
+
+```powershell
+$env:DASHBOARD_PORT=8080
+docker compose up -d --build
+```
+
+每次推送 `main` 后，GitHub Actions 还会自动构建 `linux/amd64` 与 `linux/arm64` 镜像：
+
+```bash
+docker pull ghcr.io/srl-development/network_monitor_ui:latest
+docker run -d --name network-monitor-ui --restart unless-stopped \
+  -p 8765:80 ghcr.io/srl-development/network_monitor_ui:latest
+```
+
+健康检查地址为 `http://服务器IP:8765/healthz`。容器以只读文件系统运行，Nginx 缓存、运行目录和日志目录使用临时内存卷。
+
+Zabbix 地址、设备台账、站点和布局配置保存在访问者浏览器的 `localStorage`，重建容器不会清除；但更换域名、端口或 HTTP/HTTPS 协议会被浏览器视为新的站点来源，需要重新配置或导入台账。Zabbix 跨域访问仍建议通过企业反向代理处理。
+
 ### 只有 Zabbix 时如何使用
 
 1. 在「设备台账」登记实际设备，并填写与 Zabbix 完全一致的主机名。
