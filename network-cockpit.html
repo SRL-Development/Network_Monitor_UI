@@ -216,6 +216,9 @@ body.editing .txt-editable{cursor:text;border-radius:3px;transition:outline-colo
 body.editing .txt-editable:hover{outline:1px dashed rgba(34,211,238,.75);background:rgba(34,211,238,.08)}
 body.editing .txt-editable.text-selected{outline:1px solid var(--cyan);background:rgba(34,211,238,.13);box-shadow:0 0 10px rgba(34,211,238,.18)}
 body.editing .txt-editable[contenteditable="true"]{outline:1px solid var(--amber);background:rgba(245,158,11,.12);cursor:text}
+body.editing .txt-svg-editable{cursor:text;pointer-events:all!important}
+body.editing .txt-svg-editable:hover{filter:drop-shadow(0 0 3px rgba(34,211,238,.95))}
+body.editing .txt-svg-editable.text-selected{stroke:var(--cyan);stroke-width:.45px;paint-order:stroke;filter:drop-shadow(0 0 4px rgba(34,211,238,.9))}
 .panel.dragover{border-color:var(--cyan);box-shadow:var(--glow);transform:translateY(-2px)}
 .panel.drag-h{opacity:.45}
 .sw{width:22px;height:22px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:.15s}
@@ -256,10 +259,10 @@ body.editing .txt-editable[contenteditable="true"]{outline:1px solid var(--amber
 .li .tt{color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .li .ss{color:var(--txt-3);font-size:10px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .li .vv{font-weight:700;color:var(--c);font-size:13px;white-space:nowrap}
-#secRisk,#sla,#ticket{height:100%;overflow:auto;padding-right:2px}
-#secRisk .li,#sla .li,#ticket .li{flex-shrink:0}
-#secRisk::-webkit-scrollbar,#sla::-webkit-scrollbar,#ticket::-webkit-scrollbar{width:4px}
-#secRisk::-webkit-scrollbar-thumb,#sla::-webkit-scrollbar-thumb,#ticket::-webkit-scrollbar-thumb{
+#secRisk,#sla,#businessImpact{height:100%;overflow:auto;padding-right:2px}
+#secRisk .li,#sla .li,#businessImpact .li{flex-shrink:0}
+#secRisk::-webkit-scrollbar,#sla::-webkit-scrollbar,#businessImpact::-webkit-scrollbar{width:4px}
+#secRisk::-webkit-scrollbar-thumb,#sla::-webkit-scrollbar-thumb,#businessImpact::-webkit-scrollbar-thumb{
   background:rgba(34,211,238,.25);border-radius:4px
 }
 #cap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:10px;align-content:start}
@@ -595,7 +598,7 @@ body.editing .edit-tip{display:block}
     <div class="exec-k"><span>业务可用</span><b id="execSla">--%</b></div>
     <div class="exec-k"><span>影响范围</span><b id="execImpact">--</b></div>
     <div class="exec-k"><span>P1 紧急事项</span><b id="execP1">--</b></div>
-    <div class="exec-k"><span>处置闭环</span><b id="execClosure">--</b></div>
+    <div class="exec-k"><span>容量风险</span><b id="execCapacityRisk">--</b></div>
   </div>
 
   <!-- ===================== 主体 ===================== -->
@@ -723,10 +726,10 @@ body.editing .edit-tip{display:block}
         </div>
       </div>
 
-      <div class="panel" data-mod="ticket" data-page="exec" style="flex:1">
-        <div class="p-h"><i class="bar"></i><span class="t">工单与变更</span><span class="en">Tickets &amp; Changes</span>
+      <div class="panel" data-mod="businessImpact" data-page="exec" style="flex:1">
+        <div class="p-h"><i class="bar"></i><span class="t">业务影响与风险责任</span><span class="en">Business Impact &amp; Ownership</span>
           <div class="r"><i class="grip"></i></div></div>
-        <div class="p-b"><div class="list" id="ticket"></div></div>
+        <div class="p-b"><div class="list" id="businessImpact"></div></div>
       </div>
 
       <div class="panel" data-mod="wan" data-page="net" style="flex:1">
@@ -785,7 +788,15 @@ body.editing .edit-tip{display:block}
       <div class="fld" style="border-top:1px solid var(--line);padding-top:10px;margin-top:6px">
         <label>全局文字编辑</label>
         <div class="hint" id="txtSelected" style="border:1px solid rgba(34,211,238,.18);border-radius:6px;padding:6px;margin-bottom:6px">
-          双击大屏中的任意文字开始编辑；Enter 保存，Esc 取消。
+          单击选择任意文字；双击可直接编辑。地图与拓扑文字也可在下方修改。
+        </div>
+        <select id="txtPicker" title="页面文字快速选择">
+          <option value="">快速选择页面文字（含地图与拓扑）</option>
+        </select>
+        <input id="txtValue" style="margin-top:6px" spellcheck="false" placeholder="选中文字后，在这里修改文字内容" />
+        <div class="row2" style="margin-top:6px">
+          <div class="btn" id="txtApplyContent">应用文字内容</div>
+          <div class="hint" style="margin:0;align-self:center">动态数值也可覆盖，恢复后继续实时刷新</div>
         </div>
         <div class="row2">
           <input id="txtSize" type="number" min="8" max="72" step="1" placeholder="字号 px" />
@@ -1164,7 +1175,7 @@ body.editing .edit-tip{display:block}
           容量水位 <code>item.get</code>（按上方映射逐行接管）<br>
           <b>拓扑节点</b>：Zabbix 主机名与拓扑节点标签同名即接管，异常取「不可达主机 + P1/P2 触发」<br>
           <b>地图点位</b>：点位 id / 名称命中主机分组名则接管三态与在线率<br>
-          <span style="color:#f59e0b">安全评分、攻击趋势、工单仍为演示基线</span>——这些语义依赖你们自己的 trigger 标签口径，需要单独定义。
+          <span style="color:#f59e0b">安全评分、攻击趋势、业务影响仍为演示基线</span>——这些语义依赖你们自己的 trigger 标签口径，需要单独定义。
         </div>
       </div>
 
@@ -3000,7 +3011,7 @@ const Mock = {
   walk:(v,amp,min,max)=> Math.min(max, Math.max(min, v + (Math.random()-0.45)*amp)),
   build(){
     const T = ++this.t, d = {kpi:[],band:{},secScore:{},secTrend:{},secTop:[],secRisk:[],changeAudit:null,vpnRisk:null,flow:null,assetTraffic:null,
-      link:[],sla:[],cap:[],zone:[],ticket:[],topo:{},alerts:[],assetHealth:[],infraRisk:[],wan:[],siteTraffic:[],resilience:[],lifecycle:[],forecast:[],investment:[]};
+      link:[],sla:[],cap:[],zone:[],businessImpact:[],topo:{},alerts:[],assetHealth:[],infraRisk:[],wan:[],siteTraffic:[],resilience:[],lifecycle:[],forecast:[],investment:[]};
 
     /* --- 全局 KPI（规模按实况：网络 318 · 服务器 30 · 存储 20）--- */
     const totalDev = ASSET.net + ASSET.srv + ASSET.sto, online = totalDev - Math.round(this.rnd(2,6,0));
@@ -3192,7 +3203,7 @@ const Mock = {
       {n:'无线 AP',total:192,online:188,health:this.rnd(95.8,98.8,1),c:C.green,d:'总部 / 园区 / 分支'}
     ];
     d.infraRisk = [
-      {n:'PowerEdge R740 电源冗余降级',d:'SRV-ERP-04 · 生产区 · 已派单',v:'P1',c:C.red},
+      {n:'PowerEdge R740 电源冗余降级',d:'SRV-ERP-04 · 生产区 · 业务暂未受影响',v:'P1',c:C.red},
       {n:'Unity-02 存储池容量达到 82%',d:'预计 4.2 个月达到扩容阈值',v:'P2',c:C.amber},
       {n:'C9300-SW-07 风扇转速异常',d:'总部 5F · 备件已到库',v:'P2',c:C.amber},
       {n:'AP-HQ-3F-12 重启次数偏高',d:'近 24 小时 6 次 · 待更换',v:'P3',c:C.blue},
@@ -3201,8 +3212,8 @@ const Mock = {
     d.wan = SiteCatalog.view(null,false);
     d.siteTraffic = SiteCatalog.traffic(null,false);
     d.changeAudit = {source:'演示基线',items:[
-      {clock:Math.floor(Date.now()/1000)-780,device:'HQ-FTD-01',user:'netops.zhang',message:'修改对象：访问策略 OUTSIDE-IN · 变更单 CHG-2026-1108',status:'已关联工单'},
-      {clock:Math.floor(Date.now()/1000)-2460,device:'FGT-SITE-C',user:'admin.li',message:'修改对象：SD-WAN member 2 · 未发现工单号',status:'待核验'},
+      {clock:Math.floor(Date.now()/1000)-780,device:'HQ-FTD-01',user:'netops.zhang',message:'修改对象：访问策略 OUTSIDE-IN · 已匹配授权窗口',status:'已授权'},
+      {clock:Math.floor(Date.now()/1000)-2460,device:'FGT-SITE-C',user:'admin.li',message:'修改对象：SD-WAN member 2 · 未匹配授权记录',status:'待核验'},
       {clock:Math.floor(Date.now()/1000)-5220,device:'F5-LTM-01',user:'svc_deploy',message:'修改对象：virtual server /Common/erp-vs',status:'自动部署'}
     ]};
     d.vpnRisk = {source:'演示基线',items:[
@@ -3240,13 +3251,12 @@ const Mock = {
       {n:'灾备自动化编排',d:'将关键业务平均 RTO 降低 35%',v:'P2 · PoC',c:C.cyan}
     ];
 
-    /* --- 工单与变更 --- */
-    d.ticket = [
-      {c:C.red,   t:'Core-03 /cpu 持续 96%',     s:'工单 INC-20871 · 网络组 · 12min', v:'处理中'},
-      {c:C.amber, t:'IDC-2 冷链告警 Temperature',s:'工单 INC-20866 · 机房 · 34min',   v:'处理中'},
-      {c:C.blue,  t:'C9300 固件 10.2.5 → 10.2.9',s:'变更 CHG-0431 · 窗口 02:00',     v:'待批准'},
-      {c:C.blue,  t:'DMZ ACL 策略基线复核',      s:'变更 CHG-0429 · 今日 18:00',     v:'待执行'},
-      {c:C.cyan,  t:'FW-02 日志外发任务',        s:'任务 TSK-0912 · 已完成',          v:'已关闭'}
+    /* --- 领导视角：只展示业务影响、风险责任与投资信号，不展示执行团队流水 --- */
+    d.businessImpact = [
+      {c:C.green, t:'核心业务整体稳定',s:'交易、身份、供应链服务均可用',v:'正常'},
+      {c:C.amber, t:'Site D 当前走备线路',s:'业务可用 · 往返时延上升 18 ms',v:'关注'},
+      {c:C.red, t:'VPN 异常认证集中',s:'HQ-ASA-VPN · 安全责任组正在核验',v:'风险'},
+      {c:C.cyan, t:'苏州 Hub 容量余量 38%',s:'双 IPsec 汇总 · 当前无扩容压力',v:'充足'}
     ];
 
     /* --- 实时告警流（按 P1~P4 分级口径编排，每条标注主责组）--- */
@@ -3734,7 +3744,7 @@ function renderExecSummary(d){
   const worst=(d.sites||[]).slice().sort(function(a,b){return a.health-b.health;})[0];
   const impactSites=(d.sites||[]).filter(function(x){return Number(x.health)<94;}).length;
   const impactBiz=(d.sla||[]).filter(function(x){return x.bad||Number(x.v)<99.5;}).length;
-  const tickets=d.ticket||[],closed=tickets.filter(function(x){return /已关闭|已完成/.test(String(x.v||''));}).length;
+  const capacityRisk=(d.cap||[]).filter(function(x){return x.u==='%'&&Number(x.v)>=80;}).length;
   let state='区域整体稳定',grade='区域网络健康 A',color='var(--green)';
   if(p1>=3||health<94||sla<99.8){state='需要关注';grade='存在需优先处置事项';color='var(--red)';}
   else if(p1||health<97||sla<99.95){state='轻度波动';grade='业务总体不受影响';color='var(--amber)';}
@@ -3744,8 +3754,8 @@ function renderExecSummary(d){
   $('execSla').textContent=(sla?sla.toFixed(3):'--')+'%';$('execP1').textContent=p1+' 项';
   $('execImpact').textContent=(impactSites||impactBiz)?impactSites+'站/'+impactBiz+'业务':'无';
   $('execImpact').style.color=(impactSites||impactBiz)?'var(--amber)':'var(--green)';
-  $('execClosure').textContent=tickets.length?closed+' / '+tickets.length:'--';
-  $('execClosure').style.color=closed===tickets.length&&tickets.length?'var(--green)':closed?'var(--cyan)':'var(--amber)';
+  $('execCapacityRisk').textContent=capacityRisk?capacityRisk+' 项偏高':'余量充足';
+  $('execCapacityRisk').style.color=capacityRisk?'var(--amber)':'var(--green)';
   let decision='区域内暂无影响业务的重大异常';
   let action='值班建议：保持观察 · 8 秒自动刷新';
   if(p1&&d.secRisk&&d.secRisk[0]){
@@ -3813,7 +3823,7 @@ async function tick(force){
     renderKPI(d); renderSecScore(d.secScore); renderSecTrend(d.secTrend);
     renderSecTop(d.secTop); renderList('secRisk', d.secRisk); renderChangeAudit(d.changeAudit); renderVpnRisk(d.vpnRisk);
     renderBand(d.band); renderTopo(d.topo); renderLink(d.link); renderFlow(d.flow); AssetTraffic.render(d.assetTraffic,d.flow);
-    renderSla(d.sla); renderCap(d.cap); renderList('ticket', d.ticket);
+    renderSla(d.sla); renderCap(d.cap); renderList('businessImpact', d.businessImpact);
     renderAssetHealth(d.assetHealth);renderInfraRisk(d.infraRisk);renderWan(d.wan);renderSiteTraffic(d.siteTraffic);
     renderResilience(d.resilience);renderLifecycle(d.lifecycle);renderForecast(d.forecast);renderInvestment(d.investment);
     renderAlerts(d.alerts);
@@ -3956,14 +3966,17 @@ const TextEditor={
     const base=root.dataset&&root.dataset.mod?'mod:'+root.dataset.mod:'scope:'+(root.id||root.className||root.tagName);
     return base+'/'+parts.join('.');
   },
-  apply(span){
-    const o=this.overrides[span.dataset.textKey];
-    if(o&&Object.prototype.hasOwnProperty.call(o,'text'))span.textContent=o.text;
-    else if(span.dataset.liveText!==undefined)span.textContent=span.dataset.liveText;
-    span.style.fontSize=o&&o.size?o.size+'px':'';
-    span.style.color=o&&o.color?o.color:'';
-    span.style.fontWeight=o&&o.weight?o.weight:'';
-    span.classList.toggle('text-selected',span.dataset.textKey===this.selectedKey);
+  elementKey(el,scope){return this.nodeKey(el,scope);},
+  editableSelector:'.txt-editable,.txt-svg-editable',
+  apply(el){
+    const o=this.overrides[el.dataset.textKey],isSvg=el.classList.contains('txt-svg-editable');
+    if(o&&Object.prototype.hasOwnProperty.call(o,'text'))el.textContent=o.text;
+    else if(el.dataset.liveText!==undefined)el.textContent=el.dataset.liveText;
+    el.style.fontSize=o&&o.size?o.size+'px':'';
+    el.style.color=o&&o.color?o.color:'';
+    if(isSvg)el.style.fill=o&&o.color?o.color:'';
+    el.style.fontWeight=o&&o.weight?o.weight:'';
+    el.classList.toggle('text-selected',el.dataset.textKey===this.selectedKey);
   },
   refresh(){
     const self=this;
@@ -3980,26 +3993,47 @@ const TextEditor={
         span.className='txt-editable';span.dataset.textKey=key;span.dataset.liveText=node.nodeValue;
         span.textContent=node.nodeValue;span.spellcheck=false;node.parentNode.replaceChild(span,node);self.apply(span);
       });
+      scope.querySelectorAll('svg text').forEach(function(el){
+        el.classList.add('txt-svg-editable');
+        if(!el.dataset.textKey)el.dataset.textKey=self.elementKey(el,scope);
+        if(el.dataset.liveText===undefined)el.dataset.liveText=el.textContent;
+        const group=el.parentElement&&el.parentElement.tagName&&el.parentElement.tagName.toLowerCase()==='g'?el.parentElement:null;
+        if(group&&!group.dataset.textEditBound){
+          group.dataset.textEditBound='1';
+          group.addEventListener('click',function(e){if(!document.body.classList.contains('editing'))return;const target=e.target.closest&&e.target.closest('text.txt-svg-editable')||group.querySelector('text.txt-svg-editable');if(!target)return;self.select(target);e.preventDefault();e.stopPropagation();},true);
+          group.addEventListener('dblclick',function(e){if(!document.body.classList.contains('editing'))return;const target=e.target.closest&&e.target.closest('text.txt-svg-editable')||group.querySelector('text.txt-svg-editable');if(!target)return;self.start(target);e.preventDefault();e.stopPropagation();},true);
+        }
+        self.apply(el);
+      });
     });
-    document.querySelectorAll('.txt-editable').forEach(function(span){self.apply(span);});
-    if(this.selectedKey){this.selectedEl=document.querySelector('.txt-editable[data-text-key="'+CSS.escape(this.selectedKey)+'"]');}
-    const count=document.querySelectorAll('.txt-editable').length;
+    document.querySelectorAll(this.editableSelector).forEach(function(el){self.apply(el);});
+    if(this.selectedKey){this.selectedEl=document.querySelector('[data-text-key="'+CSS.escape(this.selectedKey)+'"]');}
+    const editables=Array.from(document.querySelectorAll(this.editableSelector)),count=editables.length,picker=$('txtPicker');
+    if(picker&&document.activeElement!==picker){
+      const keep=this.selectedKey;picker.innerHTML='<option value="">快速选择页面文字（含地图与拓扑）</option>';
+      editables.forEach(function(el,i){const text=(el.textContent||'').trim();if(!text)return;const op=document.createElement('option');op.value=el.dataset.textKey;op.textContent=(i+1)+' · '+text.slice(0,70);picker.appendChild(op);});
+      picker.value=keep||'';
+    }
     if($('txtMsg')&&!this.editing)$('txtMsg').textContent='当前可编辑 '+count+' 处文字；手工覆盖优先于实时渲染，可随时恢复。';
   },
   rgbHex(c){
     if(!c||c[0]==='#')return c||'';const m=c.match(/\d+/g);if(!m||m.length<3)return '';
     return '#'+m.slice(0,3).map(function(x){return Number(x).toString(16).padStart(2,'0');}).join('');
   },
-  select(span){
-    document.querySelectorAll('.txt-editable.text-selected').forEach(function(x){x.classList.remove('text-selected');});
-    this.selectedEl=span;this.selectedKey=span.dataset.textKey;span.classList.add('text-selected');
-    const o=this.overrides[this.selectedKey]||{},cs=getComputedStyle(span);
+  select(el){
+    document.querySelectorAll('.txt-editable.text-selected,.txt-svg-editable.text-selected').forEach(function(x){x.classList.remove('text-selected');});
+    this.selectedEl=el;this.selectedKey=el.dataset.textKey;el.classList.add('text-selected');
+    const o=this.overrides[this.selectedKey]||{},cs=getComputedStyle(el);
+    if($('txtPicker'))$('txtPicker').value=this.selectedKey;
+    $('txtValue').value=el.textContent.trim();
     $('txtSize').value=o.size||Math.round(parseFloat(cs.fontSize))||'';$('txtColor').value=o.color||'';$('txtWeight').value=o.weight||'';
-    $('txtSelected').innerHTML='已选：<b style="color:var(--cyan)">'+esc(span.textContent.trim().slice(0,42)||'空文字')+'</b>';
+    $('txtSelected').innerHTML='已选：<b style="color:var(--cyan)">'+esc(el.textContent.trim().slice(0,42)||'空文字')+'</b>';
   },
-  start(span){
-    this.select(span);this.editing=span;this.before=span.textContent;span.contentEditable='true';span.focus();
-    const r=document.createRange();r.selectNodeContents(span);const s=getSelection();s.removeAllRanges();s.addRange(r);
+  start(el){
+    this.select(el);
+    if(el.classList.contains('txt-svg-editable')){$('txtValue').focus();$('txtValue').select();$('txtMsg').textContent='图形文字已选中：在文字内容框修改后点击应用。';return;}
+    this.editing=el;this.before=el.textContent;el.contentEditable='true';el.focus();
+    const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);
     $('txtMsg').textContent='正在编辑文字：Enter 保存 · Esc 取消';
   },
   finish(saveChange){
@@ -4011,6 +4045,15 @@ const TextEditor={
       this.save();this.apply(span);$('txtMsg').innerHTML='<span style="color:var(--green)">✓ 文字已保存</span>，刷新后仍会保留。';
     }else{span.textContent=this.before;this.apply(span);$('txtMsg').textContent='已取消本次修改。';}
     this.editing=null;
+  },
+  applyContent(){
+    if(!this.selectedKey||!this.selectedEl){$('txtMsg').textContent='请先单击选择大屏中的一处文字。';return;}
+    const text=($('txtValue').value||'').trim();if(!text){$('txtMsg').textContent='文字内容不能为空；如需隐藏模块，请在模块列表关闭。';return;}
+    const o=Object.assign({},this.overrides[this.selectedKey]||{}),live=(this.selectedEl.dataset.liveText||'').trim();
+    if(text!==live)o.text=text;else delete o.text;
+    if(Object.keys(o).length)this.overrides[this.selectedKey]=o;else delete this.overrides[this.selectedKey];
+    this.save();this.apply(this.selectedEl);$('txtSelected').innerHTML='已选：<b style="color:var(--cyan)">'+esc(text.slice(0,42))+'</b>';
+    $('txtMsg').innerHTML='<span style="color:var(--green)">✓ 文字内容已保存</span>，刷新后仍会保留。';
   },
   applyStyle(){
     if(!this.selectedKey||!this.selectedEl){$('txtMsg').textContent='请先双击选择大屏中的一处文字。';return;}
@@ -4024,11 +4067,11 @@ const TextEditor={
   },
   restoreOne(){
     if(!this.selectedKey||!this.selectedEl){$('txtMsg').textContent='请先双击选择需要恢复的文字。';return;}
-    delete this.overrides[this.selectedKey];this.save();this.apply(this.selectedEl);$('txtSize').value='';$('txtColor').value='';$('txtWeight').value='';
+    delete this.overrides[this.selectedKey];this.save();this.apply(this.selectedEl);$('txtValue').value=this.selectedEl.dataset.liveText||'';$('txtSize').value='';$('txtColor').value='';$('txtWeight').value='';
     $('txtMsg').innerHTML='<span style="color:var(--green)">✓ 已恢复该处实时文字与默认字体</span>';
   },
   restoreAll(){
-    this.overrides={};this.save();document.querySelectorAll('.txt-editable').forEach(function(x){x.textContent=x.dataset.liveText;x.style.fontSize='';x.style.color='';x.style.fontWeight='';});
+    this.overrides={};this.save();document.querySelectorAll(this.editableSelector).forEach(function(x){x.textContent=x.dataset.liveText;x.style.fontSize='';x.style.color='';x.style.fill='';x.style.fontWeight='';});
     $('txtMsg').innerHTML='<span style="color:var(--green)">✓ 已恢复全部实时文字与默认字体</span>';
   },
   export(){
@@ -4045,7 +4088,7 @@ const CustomModules={
   page(d){return d.source==='alerts'?'sec':d.source==='metrics'?'net':'net';},
   bindPanel(p){
     if(p.dataset.boundCustom==='1')return;p.dataset.boundCustom='1';p.draggable=true;
-    p.addEventListener('dragstart',function(e){if(e.target.closest&&e.target.closest('.txt-editable')){e.preventDefault();return;}dragEl=p;p.classList.add('drag-h');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',p.dataset.mod);});
+    p.addEventListener('dragstart',function(e){if(e.target.closest&&e.target.closest('.txt-editable,.txt-svg-editable')){e.preventDefault();return;}dragEl=p;p.classList.add('drag-h');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',p.dataset.mod);});
     p.addEventListener('dragend',function(){p.classList.remove('drag-h');dragEl=null;persist();});
     p.addEventListener('dragover',function(e){e.preventDefault();if(p!==dragEl)p.classList.add('dragover');});
     p.addEventListener('dragleave',function(){p.classList.remove('dragover');});
@@ -4154,7 +4197,7 @@ let dragEl = null;
 document.querySelectorAll('.panel[data-mod]').forEach(function(p){
   p.draggable = true;
   p.addEventListener('dragstart', function(e){
-    if(e.target.closest && e.target.closest('.txt-editable')){ e.preventDefault(); return; }
+    if(e.target.closest && e.target.closest('.txt-editable,.txt-svg-editable')){ e.preventDefault(); return; }
     dragEl = p; p.classList.add('drag-h');
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', p.dataset.mod);
@@ -4220,19 +4263,21 @@ $('btnReset').onclick = function(){ try{ localStorage.removeItem(KEY+'.titles');
 $('cmNew').onclick=function(){CustomModules.add();};
 $('cmSave').onclick=function(){CustomModules.update();};
 $('cmDelete').onclick=function(){CustomModules.remove();};
+$('txtPicker').onchange=function(){const el=document.querySelector('[data-text-key="'+CSS.escape(this.value)+'"]');if(el)TextEditor.select(el);};
+$('txtApplyContent').onclick=function(){TextEditor.applyContent();};
 $('txtApplyStyle').onclick=function(){TextEditor.applyStyle();};
 $('txtRestoreOne').onclick=function(){TextEditor.restoreOne();};
 $('txtRestoreAll').onclick=function(){TextEditor.restoreAll();};
 $('txtExport').onclick=function(){TextEditor.export();};
 stage.addEventListener('click',function(e){
   if(!document.body.classList.contains('editing'))return;
-  const span=e.target.closest&&e.target.closest('.txt-editable');if(!span)return;
-  TextEditor.select(span);e.preventDefault();e.stopPropagation();
+  const el=e.target.closest&&e.target.closest('.txt-editable,.txt-svg-editable');if(!el)return;
+  TextEditor.select(el);e.preventDefault();e.stopPropagation();
 },true);
 stage.addEventListener('dblclick',function(e){
   if(!document.body.classList.contains('editing'))return;
-  const span=e.target.closest&&e.target.closest('.txt-editable');if(!span)return;
-  TextEditor.start(span);e.preventDefault();e.stopPropagation();
+  const el=e.target.closest&&e.target.closest('.txt-editable,.txt-svg-editable');if(!el)return;
+  TextEditor.start(el);e.preventDefault();e.stopPropagation();
 },true);
 stage.addEventListener('keydown',function(e){
   if(!TextEditor.editing||e.target!==TextEditor.editing)return;
@@ -4877,7 +4922,7 @@ document.querySelectorAll('#drawer .tabs .t').forEach(function(el){
  *     window.Netcockpit.setPoints(...) 注入点位；其它方法见下方注释
  * ======================================================================== */
 window.Netcockpit = {
-  version : '2.4.0',
+  version : '2.5.0',
   map     : MapLayer,
   asset   : ASSET,
   sessions: SessionAdapter,
